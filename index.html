@@ -105,13 +105,6 @@ details summary{cursor:pointer;color:var(--fg)}
 
   <div class="filters" id="genres" role="group" aria-label="ז'אנר"></div>
   <div class="row">
-    <select id="era" aria-label="תקופה">
-      <option value="any">כל התקופות</option>
-      <option value="classic">קלאסי (לפני 2000)</option>
-      <option value="2000">שנות ה‑2000</option>
-      <option value="2010">שנות ה‑2010</option>
-      <option value="2020">שנות ה‑2020</option>
-    </select>
     <select id="diff" aria-label="רמת קושי">
       <option value="easy">קל — הלהיטים הגדולים</option>
       <option value="medium" selected>בינוני</option>
@@ -163,28 +156,31 @@ details summary{cursor:pointer;color:var(--fg)}
   <details>
     <summary>איך משחקים</summary>
     <p>לוחצים נגן ושומעים 0.1 שניות. מנחשים — בחירה מהרשימה הכי מדויקת. דילוג או טעות פותחים קטע ארוך יותר: 0.5, 2, 8 ואז 15 שניות. ככל שמנחשים מוקדם יותר, מקבלים יותר נקודות. הרצף נשמר עד הטעות הראשונה. אוזניות עוזרות בקטעים הקצרים.</p>
-    <p>הקטעים מגיעים מתצוגות המקדימות של iTunes.</p>
+    <p>הקטעים מגיעים מהתצוגות המקדימות של Deezer.</p>
   </details>
 </div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
+/* Songs come from the Deezer public API (JSONP, no key, works from any static host).
+   Each genre is a list of artists; a round picks an artist, pulls their top tracks
+   (ranked by popularity) and picks one. Difficulty = how deep into that ranking we go. */
 const GENRES = {
   all:    {label:"הכל"},
-  il:     {label:"ישראלי", country:"il", artists:["עומר אדם","אייל גולן","נועה קירל","סטטיק ובן אל תבורי","אושר כהן","עדן חסון","שלמה ארצי","אריק איינשטיין","משינה","אביב גפן","עברי לידר","סטפן לגר","אנה זק","נסרין קדרי","הדג נחש","שרית חדד","מוש בן ארי","נתן גושן","אגם בוחבוט","ששון איפרם שאולוב","הראל סקעת","שלום חנוך","רביד פלוטניק","ישי ריבו"]},
+  il:     {label:"ישראלי", artists:["Omer Adam","Eyal Golan","Noa Kirel","Static & Ben El","Osher Cohen","Eden Hason","Shlomo Artzi","Arik Einstein","Mashina","Aviv Geffen","Ivri Lider","Stephane Legar","Anna Zak","Nasrin Kadri","Hadag Nahash","Sarit Hadad","Mosh Ben Ari","Nathan Goshen","Agam Buhbut","Ishay Ribo","Harel Skaat","Shalom Hanoch","Ravid Plotnik","Eden Ben Zaken"]},
   pop:    {label:"פופ", artists:["Taylor Swift","Dua Lipa","Ed Sheeran","Ariana Grande","The Weeknd","Billie Eilish","Harry Styles","Bruno Mars","Lady Gaga","Rihanna","Katy Perry","Justin Bieber","Olivia Rodrigo","Sabrina Carpenter","Miley Cyrus","Adele","Coldplay","Maroon 5","Michael Jackson","Madonna","Britney Spears","ABBA"]},
-  hiphop: {label:"היפ‑הופ", artists:["Drake","Kendrick Lamar","Eminem","Travis Scott","Kanye West","J. Cole","Post Malone","Nicki Minaj","Cardi B","Doja Cat","50 Cent","JAY-Z","Future","Snoop Dogg","OutKast","Tupac","The Notorious B.I.G.","Lil Wayne"]},
+  hiphop: {label:"היפ‑הופ", artists:["Drake","Kendrick Lamar","Eminem","Travis Scott","Kanye West","J. Cole","Post Malone","Nicki Minaj","Cardi B","Doja Cat","50 Cent","JAY-Z","Future","Snoop Dogg","OutKast","2Pac","The Notorious B.I.G.","Lil Wayne"]},
   rock:   {label:"רוק", artists:["Queen","Nirvana","Linkin Park","Red Hot Chili Peppers","Foo Fighters","Arctic Monkeys","Imagine Dragons","The Killers","Green Day","AC/DC","Guns N' Roses","Muse","Radiohead","Oasis","The Beatles","Bon Jovi","Twenty One Pilots","The Rolling Stones"]},
-  rnb:    {label:"R&B", artists:["Beyoncé","Usher","SZA","Frank Ocean","Alicia Keys","Chris Brown","Daniel Caesar","Khalid","John Legend","Mariah Carey","Whitney Houston","Destiny's Child","Ne-Yo","The Weeknd","Rihanna"]},
+  rnb:    {label:"R&B", artists:["Beyoncé","Usher","SZA","Frank Ocean","Alicia Keys","Chris Brown","Daniel Caesar","Khalid","John Legend","Mariah Carey","Whitney Houston","Destiny's Child","Ne-Yo"]},
   kpop:   {label:"K‑Pop", artists:["BTS","BLACKPINK","TWICE","Stray Kids","NewJeans","SEVENTEEN","EXO","Red Velvet","aespa","IVE","LE SSERAFIM","BIGBANG","PSY","ITZY"]}
 };
 const STAGES = [0.1, 0.5, 2, 8, 15];
 const POINTS = [5, 4, 3, 2, 1];
 const DIFF = {
-  easy:{depth:8, mult:1}, medium:{depth:20, mult:1.5}, hard:{depth:50, mult:2},
+  easy:{depth:10, mult:1}, medium:{depth:25, mult:1.5}, hard:{depth:50, mult:2},
   expert:{depth:50, mult:3, offset:true}, impossible:{depth:50, mult:5, offset:true, maxStage:2}
 };
-const JUNK = /\b(live|karaoke|instrumental|remix|acoustic|version|edit|mix|demo|commentary|interview|sped up|slowed)\b/i;
+const JUNK = /\b(live|karaoke|instrumental|remix|acoustic|version|edit|demo|commentary|interview|sped up|slowed)\b/i;
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -193,71 +189,81 @@ const store = {
 };
 
 let genre = store.get("genre","all");
+if (!GENRES[genre]) genre = "all";
 let stats = {streak:store.get("streak",0), best:store.get("best",0), score:store.get("score",0)};
-let round = null;            // {track, country, stage, offset, results:[], done}
-let audio = new Audio();
+let round = null;   // {track, stage, offset, maxStage, mult, results:[], done}
+const audio = new Audio();
 audio.preload = "auto";
-let rafId = 0, clipEnd = 0, fullMode = false;
-let selected = null;         // track picked from suggestions
+let rafId = 0, clipEnd = 0;
+let selected = null;
 
-/* ---------- iTunes via JSONP (works from file:// and any static host) ---------- */
+/* ---------- Deezer API ---------- */
 function jsonp(url){
   return new Promise((resolve,reject)=>{
     const cb = "blip_cb_" + Math.random().toString(36).slice(2);
     const s = document.createElement("script");
-    const timer = setTimeout(()=>{cleanup();reject(new Error("timeout"))},9000);
+    const timer = setTimeout(()=>{cleanup();reject(new Error("timeout"))},10000);
     function cleanup(){clearTimeout(timer);delete window[cb];s.remove()}
-    window[cb] = data => {cleanup();resolve(data)};
+    window[cb] = data => {cleanup(); data && data.error ? reject(new Error(data.error.message||"API error")) : resolve(data)};
     s.onerror = () => {cleanup();reject(new Error("network"))};
-    s.src = url + (url.includes("?")?"&":"?") + "callback=" + cb;
+    s.src = url + (url.includes("?")?"&":"?") + "output=jsonp&callback=" + cb;
     document.head.appendChild(s);
   });
 }
-const itunesSearch = (term, country, limit) =>
-  jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&media=music&limit=${limit}&country=${country}`);
-const itunesLookup = (id, country) =>
-  jsonp(`https://itunes.apple.com/lookup?id=${id}&country=${country}`);
+const API = "https://api.deezer.com";
+const toTrack = t => ({id:String(t.id), title:t.title_short||t.title, artist:t.artist?.name||"",
+  art:t.album?.cover_big||t.album?.cover_medium||"", thumb:t.album?.cover_small||"", preview:t.preview});
+
+const artistIds = {};
+async function artistId(name){
+  if (artistIds[name]) return artistIds[name];
+  const d = await jsonp(`${API}/search/artist?q=${encodeURIComponent(name)}&limit=1`);
+  const a = (d.data||[])[0];
+  if (!a) throw new Error("artist not found: "+name);
+  return artistIds[name] = a.id;
+}
+async function topTracks(name, limit){
+  const id = await artistId(name);
+  const d = await jsonp(`${API}/artist/${id}/top?limit=${limit}`);
+  return (d.data||[]).filter(t=>t.preview).map(toTrack);
+}
+async function searchTracks(q, limit){
+  const d = await jsonp(`${API}/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+  return (d.data||[]).filter(t=>t.preview).map(toTrack);
+}
+async function getTrack(id){
+  const t = await jsonp(`${API}/track/${id}`);
+  if (!t || !t.preview) throw new Error("track not found");
+  const n = toTrack(t); n.year = new Date(t.release_date).getFullYear()||0; return n;
+}
 
 const norm = s => (s||"").toLowerCase()
   .replace(/\(.*?\)|\[.*?\]/g,"").replace(/\s-\s.*$/,"")
-  .replace(/feat\..*$|ft\..*$/,"")
+  .replace(/\b(feat|ft)\..*$/,"")
   .replace(/[^\p{L}\p{N}]+/gu," ").trim();
 
-function yearOK(track, era){
-  const y = new Date(track.releaseDate).getFullYear();
-  if (era==="any" || !y) return true;
-  if (era==="classic") return y < 2000;
-  const start = +era; return y >= start && y < start+10;
-}
-
 async function pickTrack(){
-  const era = $("era").value, d = DIFF[$("diff").value];
+  const d = DIFF[$("diff").value];
   const pool = genre==="all"
-    ? Object.entries(GENRES).filter(([k])=>k!=="all").flatMap(([k,g])=>g.artists.map(a=>({a,c:g.country||"us"})))
-    : GENRES[genre].artists.map(a=>({a,c:GENRES[genre].country||"us"}));
-  for (let attempt=0; attempt<8; attempt++){
-    const {a,c} = pool[Math.floor(Math.random()*pool.length)];
-    let data;
-    try { data = await itunesSearch(a, c, d.depth); } catch { continue; }
-    const want = norm(a);
-    const seen = new Set();
-    let cands = (data.results||[]).filter(t=>{
-      if (!t.previewUrl || !t.trackName || JUNK.test(t.trackName) || JUNK.test(t.collectionName||"")) return false;
-      if (!norm(t.artistName).includes(want.split(" ")[0])) return false;
-      const key = norm(t.trackName); if (seen.has(key)) return false; seen.add(key);
-      return true;
-    });
-    const eraCands = cands.filter(t=>yearOK(t,era));
-    if (era!=="any" && eraCands.length===0 && attempt<6) continue;
-    cands = eraCands.length ? eraCands : cands;
-    if (!cands.length) continue;
-    return {track:cands[Math.floor(Math.random()*cands.length)], country:c};
+    ? Object.entries(GENRES).filter(([k])=>k!=="all").flatMap(([,g])=>g.artists)
+    : GENRES[genre].artists;
+  let err;
+  for (let attempt=0; attempt<6; attempt++){
+    const name = pool[Math.floor(Math.random()*pool.length)];
+    try{
+      const seen = new Set();
+      const cands = (await topTracks(name, d.depth)).filter(t=>{
+        if (JUNK.test(t.title)) return false;
+        const k = norm(t.title); if (!k || seen.has(k)) return false; seen.add(k); return true;
+      });
+      if (cands.length) return cands[Math.floor(Math.random()*cands.length)];
+    }catch(e){ err = e; }
   }
-  throw new Error("no track");
+  throw err || new Error("no tracks");
 }
 
 /* ---------- round flow ---------- */
-async function newRound(fromShare){
+async function newRound(sharedId){
   stopAudio();
   round = null; selected = null;
   $("play").disabled = true;
@@ -265,29 +271,19 @@ async function newRound(fromShare){
   $("roundActions").hidden = false; $("playArea").hidden = false;
   $("guess").value = ""; hideSugg();
   msg("טוען שיר…");
+  renderStage();
   try{
-    let picked;
-    if (fromShare){
-      const data = await itunesLookup(fromShare.id, fromShare.c);
-      const t = (data.results||[])[0];
-      if (!t || !t.previewUrl) throw new Error("bad share");
-      picked = {track:t, country:fromShare.c};
-    } else picked = await pickTrack();
+    const track = sharedId ? await getTrack(sharedId) : await pickTrack();
     const d = DIFF[$("diff").value];
-    round = {...picked, stage:0, results:[], done:false,
-             offset: d.offset ? Math.random()*Math.max(0, 28 - STAGES[d.maxStage ?? 4]) : 0,
-             maxStage: d.maxStage ?? 4, mult:d.mult};
-    audio.src = round.track.previewUrl;
+    const maxStage = d.maxStage ?? 4;
+    round = {track, stage:0, results:[], done:false, maxStage, mult:d.mult,
+             offset: d.offset ? Math.random()*Math.max(0, 28 - STAGES[maxStage]) : 0};
+    audio.src = track.preview;
     audio.load();
-    await new Promise((res)=>{
-      const ok=()=>{audio.removeEventListener("canplaythrough",ok);res()};
-      audio.addEventListener("canplaythrough",ok);
-      setTimeout(ok,4000);
-    });
     $("play").disabled = false;
-    msg(fromShare ? "חבר שלח לך את השיר הזה. בהצלחה." : "לחץ נגן. אפשר לנגן שוב כמה שרוצים.");
+    msg(sharedId ? "חבר שלח לך את השיר הזה. בהצלחה." : "לחץ נגן. אפשר לנגן שוב כמה שרוצים.");
   }catch(e){
-    msg(navigator.onLine===false ? "אין חיבור לאינטרנט." : "לא הצלחתי לטעון שיר. לחץ \"שיר אחר\" לנסות שוב.");
+    msg(navigator.onLine===false ? "אין חיבור לאינטרנט." : `לא הצלחתי לטעון שיר (${e.message}). לחץ "שיר אחר".`);
   }
   renderStage();
 }
@@ -298,11 +294,11 @@ function renderStage(){
   $("clipLen").textContent = (round?.done ? 30 : STAGES[st]) + "s";
   $("unlocked").style.width = round?.done ? "100%" : (STAGES[st]/total*100)+"%";
   $("ticks").innerHTML = STAGES.slice(0,max).map(s=>`<i style="left:${s/total*100}%"></i>`).join("");
-  $("tlabels").innerHTML = STAGES.slice(0,max+1).map((s,i)=>`<span style="left:${Math.min(97,Math.max(3,s/total*100))}%">${i===0?"":s+"s"}</span>`).join("");
+  $("tlabels").innerHTML = STAGES.slice(1,max+1).map(s=>`<span style="left:${Math.min(96,Math.max(4,s/total*100))}%">${s}s</span>`).join("");
   const cells = [];
   for (let i=0;i<=max;i++){
     const r = round?.results[i];
-    if (!r) cells.push(`<div>${i===st && !round?.done ? "▸" : ""}</div>`);
+    if (!r) cells.push(`<div>${i===st && round && !round.done ? "▸" : ""}</div>`);
     else cells.push(`<div class="${r.type}" dir="auto" title="${esc(r.text)}">${esc(r.text)}</div>`);
   }
   $("tries").innerHTML = cells.join("");
@@ -332,10 +328,9 @@ function endRound(won){
   }
   ["streak","best","score"].forEach(k=>store.set(k,stats[k]));
   renderStats();
-  $("art").src = (t.artworkUrl100||"").replace("100x100","300x300");
-  $("song").textContent = t.trackName;
-  const y = new Date(t.releaseDate).getFullYear();
-  $("artist").textContent = t.artistName + (y ? ` · ${y}` : "");
+  $("art").src = t.art;
+  $("song").textContent = t.title;
+  $("artist").textContent = t.artist;
   $("reveal").hidden = false; msg("");
   $("playArea").hidden = true; $("roundActions").hidden = true; $("endActions").hidden = false;
   renderStage();
@@ -345,20 +340,20 @@ function endRound(won){
 /* ---------- guessing ---------- */
 function isCorrect(cand){
   const t = round.track;
-  if (cand.trackId && cand.trackId === t.trackId) return true;
-  const a = norm(cand.trackName), b = norm(t.trackName);
+  if (cand.id && cand.id === t.id) return true;
+  const a = norm(cand.title), b = norm(t.title);
   if (!a || a !== b) return false;
-  if (!cand.artistName) return true;           // free text matched the title exactly
-  const ca = norm(cand.artistName), ta = norm(t.artistName);
+  if (!cand.artist) return true;
+  const ca = norm(cand.artist), ta = norm(t.artist);
   return ca.includes(ta.split(" ")[0]) || ta.includes(ca.split(" ")[0]);
 }
 
 function submitGuess(){
   if (!round || round.done) return;
   const text = $("guess").value.trim();
-  if (!text && !selected) { $("guess").focus(); return; }
-  const cand = selected || {trackName:text};
-  const label = selected ? selected.trackName : text;
+  if (!text && !selected){ $("guess").focus(); return; }
+  const cand = selected || {title:text};
+  const label = selected ? selected.title : text;
   $("guess").value = ""; selected = null; hideSugg();
   if (isCorrect(cand)){ round.results[round.stage] = {type:"right", text:label}; endRound(true); }
   else advance({type:"wrong", text:label});
@@ -369,14 +364,15 @@ $("guess").addEventListener("input", ()=>{
   selected = null;
   clearTimeout(suggTimer);
   const q = $("guess").value.trim();
-  if (q.length < 2) { hideSugg(); return; }
+  if (q.length < 2){ hideSugg(); return; }
   suggTimer = setTimeout(async ()=>{
     const seq = ++suggSeq;
     try{
-      const data = await itunesSearch(q, round?.country || "us", 10);
+      const res = await searchTracks(q, 15);
       if (seq !== suggSeq) return;
       const seen = new Set();
-      suggItems = (data.results||[]).filter(t=>{const k=norm(t.trackName)+"|"+norm(t.artistName);if(seen.has(k))return false;seen.add(k);return true}).slice(0,7);
+      suggItems = res.filter(t=>{const k=norm(t.title)+"|"+norm(t.artist);if(seen.has(k))return false;seen.add(k);return true}).slice(0,7);
+      suggIdx = -1;
       showSugg();
     }catch{}
   },250);
@@ -392,12 +388,12 @@ $("guess").addEventListener("keydown", e=>{
 });
 function showSugg(){
   if (!suggItems.length){hideSugg();return}
-  $("sugg").innerHTML = suggItems.map((t,i)=>`<button type="button" data-i="${i}" class="${i===suggIdx?"act":""}"><img src="${t.artworkUrl60||""}" alt=""><span dir="auto">${esc(t.trackName)}<small dir="auto">${esc(t.artistName)}</small></span></button>`).join("");
+  $("sugg").innerHTML = suggItems.map((t,i)=>`<button type="button" data-i="${i}" class="${i===suggIdx?"act":""}"><img src="${esc(t.thumb)}" alt=""><span dir="auto">${esc(t.title)}<small dir="auto">${esc(t.artist)}</small></span></button>`).join("");
   $("sugg").hidden = false;
 }
 function hideSugg(){ $("sugg").hidden = true; suggItems=[]; suggIdx=-1; }
-function choose(t){ selected = t; $("guess").value = `${t.trackName} — ${t.artistName}`; hideSugg(); submitGuess(); }
-$("sugg").addEventListener("mousedown", e=>{
+function choose(t){ selected = t; $("guess").value = `${t.title} — ${t.artist}`; hideSugg(); submitGuess(); }
+$("sugg").addEventListener("pointerdown", e=>{
   const b = e.target.closest("button[data-i]"); if (!b) return;
   e.preventDefault(); choose(suggItems[+b.dataset.i]);
 });
@@ -412,18 +408,18 @@ function setPlayIcon(playing){
 async function playClip(full){
   if (!round) return;
   if (!audio.paused){ stopAudio(); return; }
-  fullMode = !!full;
   const start = full ? 0 : round.offset;
   const len = full ? 30 : STAGES[round.stage];
+  try{ audio.currentTime = start; }catch{}
   try{
-    audio.currentTime = start;
-    await audio.play();
-  }catch{ toast("הדפדפן חסם את הניגון. לחץ שוב."); return; }
+    await audio.play();      // called straight from the tap, so iOS allows it
+  }catch(e){ toast("הניגון נכשל: " + (e.message||e.name)); return; }
+  if (Math.abs(audio.currentTime - start) > 0.3){ try{ audio.currentTime = start; }catch{} }
   clipEnd = start + len;
   setPlayIcon(true); $("bars").classList.add("on");
   const total = full ? 30 : STAGES[round.maxStage];
   const tick = ()=>{
-    const pos = audio.currentTime - start;
+    const pos = Math.max(0, audio.currentTime - start);
     $("fill").style.width = Math.min(100, pos/total*100) + "%";
     animateBars();
     if (audio.currentTime >= clipEnd || audio.ended || audio.paused){ stopAudio(); return; }
@@ -442,13 +438,16 @@ function stopAudio(){
 function animateBars(){
   $("bars").querySelectorAll("span").forEach(s=>s.style.height=(25+Math.random()*75)+"%");
 }
+audio.addEventListener("error", ()=>{
+  if (round && !round.done) msg(`הקטע לא נטען (קוד ${audio.error?.code||"?"}). לחץ "שיר אחר".`);
+});
 
 /* ---------- misc UI ---------- */
 function msg(t){ $("msg").textContent = t; }
 function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function renderStats(){ $("streak").textContent=stats.streak; $("best").textContent=stats.best; $("score").textContent=stats.score; }
 let toastT=0;
-function toast(t){ $("toast").textContent=t; $("toast").hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>$("toast").hidden=true,2200); }
+function toast(t){ $("toast").textContent=t; $("toast").hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>$("toast").hidden=true,2600); }
 
 function renderGenres(){
   $("genres").innerHTML = Object.entries(GENRES).map(([k,g])=>`<button class="chip" data-g="${k}" aria-pressed="${k===genre}">${g.label}</button>`).join("");
@@ -457,19 +456,18 @@ $("genres").addEventListener("click", e=>{
   const b = e.target.closest("[data-g]"); if (!b) return;
   genre = b.dataset.g; store.set("genre",genre); renderGenres(); newRound();
 });
-$("era").addEventListener("change", ()=>{ store.set("era",$("era").value); newRound(); });
 $("diff").addEventListener("change", ()=>{ store.set("diff",$("diff").value); newRound(); });
 $("play").addEventListener("click", ()=>playClip(round?.done));
 $("submit").addEventListener("click", submitGuess);
 $("skip").addEventListener("click", ()=>{ if (round && !round.done) advance({type:"skip",text:"דילוג"}); });
-$("reroll").addEventListener("click", ()=>{ if (round && round.results.length) { stats.streak=0; store.set("streak",0); renderStats(); } newRound(); });
+$("reroll").addEventListener("click", ()=>{ if (round && round.results.length){ stats.streak=0; store.set("streak",0); renderStats(); } newRound(); });
 $("next").addEventListener("click", ()=>{ history.replaceState(null,"",location.pathname+location.search); newRound(); });
 $("full").addEventListener("click", ()=>playClip(true));
 $("share").addEventListener("click", async ()=>{
-  const url = location.href.split("#")[0] + `#s=${round.track.trackId}&c=${round.country}`;
-  const text = `מצליח לזהות את השיר הזה מ‑0.1 שניות? ${url}`;
+  const url = location.href.split("#")[0] + `#s=${round.track.id}`;
+  const text = "מצליח לזהות את השיר הזה מ‑0.1 שניות?";
   try{
-    if (navigator.share) { await navigator.share({title:"Blip",text,url}); return; }
+    if (navigator.share){ await navigator.share({title:"Blip", text, url}); return; }
     await navigator.clipboard.writeText(url); toast("הקישור הועתק");
   }catch{ toast(url); }
 });
@@ -480,11 +478,10 @@ document.addEventListener("keydown", e=>{
 
 /* ---------- boot ---------- */
 $("bars").innerHTML = "<span></span>".repeat(18);
-$("era").value = store.get("era","any");
 $("diff").value = store.get("diff","medium");
 renderGenres(); renderStats(); renderStage();
-const h = new URLSearchParams(location.hash.slice(1));
-newRound(h.get("s") ? {id:h.get("s"), c:h.get("c")||"us"} : null);
+const shared = new URLSearchParams(location.hash.slice(1)).get("s");
+newRound(shared && /^\d+$/.test(shared) ? shared : null);
 </script>
 </body>
 </html>
