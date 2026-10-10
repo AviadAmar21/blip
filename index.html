@@ -3,298 +3,407 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0d0b16">
+<meta name="theme-color" content="#0b0908">
 <title>Blip — נחש את השיר</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap">
 <style>
-/* Layout: one phone-height column. Spinning record = the round; segmented clip meter under it;
-   a search button pinned low opens a full-screen search screen. Settings live in a bottom sheet.
-   Single deliberate dark look (a club at night); the accent follows the chosen genre, like a record label. */
+/* A quiet, premium Now Playing screen. Warm near-black, lit from behind by a soft glow in the
+   genre's colour. The record is the one precious object: glossy vinyl on a machined platter,
+   a slim tonearm that swings on with weight. Hierarchy comes from type, not from boxes. */
 :root{
-  --bg:#0d0b16; --bg2:#15122a; --panel:#1a1630; --line:#2c2748; --fg:#f4f1ff; --muted:#9590b3;
-  --accent:#ffb020; --ink:#160f00;
-  --good:#3ddc97; --bad:#ff5d6c; --skip:#4a4566;
-  --display:"Fredoka","Rubik",system-ui,sans-serif;
-  --body:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --mono:"JetBrains Mono",ui-monospace,monospace;
+  --g:#b9b5c9;                                   /* genre accent, set from JS */
+  --bg:#0b0908;
+  --fg:#f5f2ee; --fg2:rgba(245,242,238,.62); --fg3:rgba(245,242,238,.38); --hair:rgba(245,242,238,.10);
+  --glass:rgba(255,255,255,.075); --glass-2:rgba(255,255,255,.13);
+  --on-accent:#0d0b0a;
+  --miss:#d8786d;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Heebo",system-ui,"Segoe UI",sans-serif;
+  --spring:cubic-bezier(.32,1.15,.42,1);
+  --glide:cubic-bezier(.22,.8,.2,1);
   color-scheme:dark;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 html,body{margin:0;min-height:100%}
-body{
-  background:
-    radial-gradient(120% 60% at 50% -10%, color-mix(in srgb,var(--accent) 24%,transparent), transparent 62%),
-    var(--bg);
-  background-attachment:fixed;
-  color:var(--fg);font:16px/1.5 var(--body);
-  padding:0 16px;
-}
-button,input{font:inherit;color:inherit}
+html{background:var(--bg);overflow-x:hidden}
+body{color:var(--fg);font:400 16px/1.4 var(--font);overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-.005em}
+button,input{font:inherit;color:inherit;letter-spacing:inherit}
 button{cursor:pointer}
-:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-.wrap{max-width:480px;margin:0 auto;padding-block:calc(14px + env(safe-area-inset-top,0px)) calc(24px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px;min-height:100svh}
+:focus-visible{outline:2px solid var(--g);outline-offset:3px}
+bdi{unicode-bidi:isolate}
 
-/* header */
-header{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.logo{font:700 30px/1 var(--display);letter-spacing:.3px;display:flex;align-items:center;gap:7px}
-.logo .dot{width:11px;height:11px;border-radius:50%;background:var(--accent);box-shadow:0 0 18px var(--accent);animation:blink 2.4s infinite}
-@keyframes blink{0%,92%,100%{opacity:1}95%{opacity:.25}}
-.stats{display:flex;gap:6px}
-.stat{background:color-mix(in srgb,var(--panel) 80%,transparent);border:1px solid var(--line);border-radius:12px;padding:5px 10px;text-align:center;min-width:56px}
-.stat small{display:block;font-size:11px;color:var(--muted);line-height:1.2}
-.stat b{font:700 17px/1.2 var(--mono);font-variant-numeric:tabular-nums}
-.stat.hot b{color:var(--accent)}
+/* ---------- ambient light ---------- */
+.ambient{position:fixed;inset:0;z-index:-1;overflow:hidden;background:var(--bg);transition:filter 1.6s ease}
+.ambient i{position:absolute;border-radius:50%;filter:blur(70px);opacity:.46;transition:background-color 1.2s ease}
+.ambient .a1{width:90vmax;height:90vmax;left:-35vmax;top:-45vmax;background:color-mix(in srgb,var(--g) 70%,transparent);animation:drift1 26s ease-in-out infinite alternate}
+.ambient .a2{width:70vmax;height:70vmax;right:-40vmax;top:20vh;background:color-mix(in srgb,var(--g) 38%,#3a2418);opacity:.35;animation:drift2 32s ease-in-out infinite alternate}
+.ambient::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 0%,transparent 30%,rgba(11,9,8,.55) 70%,rgba(11,9,8,.92) 100%)}
+.art-glow{position:absolute;inset:-20%;background:center/cover no-repeat;filter:blur(80px) saturate(1.5);opacity:0;transform:scale(1.1);transition:opacity 1.6s ease,transform 2.4s var(--glide)}
+.ambient.art .art-glow{opacity:.62;transform:none}
+.ambient.muted{filter:saturate(0) brightness(.75)}
+@keyframes drift1{to{transform:translate(12vmax,8vmax) scale(1.08)}}
+@keyframes drift2{to{transform:translate(-10vmax,-6vmax) scale(.94)}}
 
-.setbar{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;
-  background:color-mix(in srgb,var(--panel) 70%,transparent);border:1px solid var(--line);border-radius:14px;padding:10px 14px;text-align:start}
-.setbar .k{color:var(--muted);font-size:13px}
-.setbar .v{font-weight:500;display:flex;align-items:center;gap:8px}
-.setbar .v i{width:9px;height:9px;border-radius:50%;background:var(--accent)}
-.setbar svg{width:18px;height:18px;color:var(--muted);flex:none}
+/* ---------- layout ---------- */
+.app{max-width:480px;margin:0 auto;min-height:100svh;display:flex;flex-direction:column;overflow-x:clip;
+  padding:calc(12px + env(safe-area-inset-top,0px)) 20px calc(14px + env(safe-area-inset-bottom,0px))}
+.spacer{flex:1 1 0;min-height:10px;max-height:72px}
 
-/* the record */
-.stage{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;padding-top:4px}
-.deck{position:relative;width:min(70vw,260px);aspect-ratio:1;max-width:100%}
-.disc{position:absolute;inset:0;border-radius:50%;
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.score{display:flex;flex-direction:column;gap:6px;min-width:0}
+#score{font-size:54px;line-height:.9;font-weight:300;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.score .cap{font-size:13px;color:var(--fg2);display:flex;gap:6px;flex-wrap:wrap;white-space:nowrap}
+.score .cap b{font-weight:600;color:var(--fg);font-variant-numeric:tabular-nums}
+.score .cap b.hot{color:var(--g)}
+.score .cap .dot{color:var(--fg3)}
+
+.glass{background:var(--glass);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 .5px 0 rgba(255,255,255,.14)}
+.chip{border:none;border-radius:999px;display:flex;align-items:center;gap:8px;height:36px;padding:0 12px 0 10px;font-size:14px;font-weight:500;white-space:nowrap;margin-top:6px}
+.chip .orb{width:10px;height:10px;border-radius:50%;background:var(--g);box-shadow:0 0 10px var(--g);transition:background-color .6s}
+.chip .sub{color:var(--fg2);font-weight:400}
+.chip svg{width:12px;height:12px;color:var(--fg2)}
+.chip:active{background:var(--glass-2)}
+
+/* ---------- the turntable ---------- */
+.stage-box{width:min(100%,400px);margin:18px auto 0}
+.stage{position:relative;height:0;padding-top:92%;transition:padding-top .8s var(--glide)}
+.stage.revealed{padding-top:80%}
+.deck{position:absolute;left:0;top:8px;width:88%;aspect-ratio:1;border:none;padding:0;background:#141312;border-radius:50%;z-index:2;
+  box-shadow:0 34px 60px -18px rgba(0,0,0,.85),0 10px 22px -10px rgba(0,0,0,.6);
+  transition:transform 1s var(--spring),opacity .6s;touch-action:manipulation}
+.deck:disabled{cursor:progress}
+.stage.revealed .deck{transform:translate(-14%,-8.6%) scale(.78)}
+/* machined aluminium rim: its reflections stay put */
+.rim{position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 10deg,#7d7f84,#e9eaec 10%,#8f9196 22%,#f6f7f8 36%,#85878c 50%,#dcdde0 62%,#8a8c91 75%,#eeeff1 88%,#7d7f84);
+  -webkit-mask:radial-gradient(circle closest-side,transparent 0 93%,#000 93.4%);mask:radial-gradient(circle closest-side,transparent 0 93%,#000 93.4%)}
+.rim::after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25),inset 0 0 6px rgba(0,0,0,.4)}
+.disc{position:absolute;inset:0;border-radius:50%;will-change:transform}
+.strobe{position:absolute;inset:0;border-radius:50%;
+  background:repeating-conic-gradient(rgba(30,30,32,.38) 0 .9deg,transparent .9deg 9deg);
+  -webkit-mask:radial-gradient(circle closest-side,transparent 0 96.6%,#000 97% 98.8%,transparent 99.2%);mask:radial-gradient(circle closest-side,transparent 0 96.6%,#000 97% 98.8%,transparent 99.2%)}
+.vinyl{position:absolute;inset:3%;border-radius:50%;
   background:
-    radial-gradient(circle, transparent 0 31%, #0a0a0f 31.5% 33%, transparent 33.5%),
-    repeating-radial-gradient(circle, #141320 0 1.6px, #0b0a12 1.6px 3.2px);
-  box-shadow:0 24px 60px -10px #000c, 0 0 0 6px #08070d, 0 0 70px -20px var(--accent);
-  animation:spin 1.8s linear infinite;animation-play-state:paused}
-.disc::after{content:"";position:absolute;inset:0;border-radius:50%;
-  background:conic-gradient(from 20deg, transparent 0 8%, #ffffff16 13%, transparent 20% 55%, #ffffff10 62%, transparent 70%)}
-.disc.spin{animation-play-state:running}
-@keyframes spin{to{transform:rotate(360deg)}}
-.label{position:absolute;inset:31%;border-radius:50%;background:var(--accent);overflow:hidden;display:grid;place-items:center;box-shadow:inset 0 0 0 3px #0003}
-.label::before{content:"";position:absolute;inset:44%;border-radius:50%;background:var(--bg);z-index:2}
-.label img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .5s}
-.label.shown img{opacity:1}
-.play{position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);width:76px;height:76px;border-radius:50%;
-  border:none;background:var(--fg);color:var(--bg);display:grid;place-items:center;z-index:3;
-  box-shadow:0 8px 30px #0008;transition:transform .12s, opacity .2s}
-.play:active{transform:translate(-50%,-50%) scale(.92)}
-.play:disabled{opacity:.45;cursor:wait}
-.play svg{width:32px;height:32px}
-.play.loading svg{animation:pulse 1s infinite}
-@keyframes pulse{50%{opacity:.3}}
-.arm{position:absolute;top:-4%;left:-2%;width:30%;height:58%;transform-origin:12% 8%;transform:rotate(-28deg);transition:transform .5s cubic-bezier(.3,1.4,.5,1);pointer-events:none;z-index:4}
-.arm.on{transform:rotate(-6deg)}
-.arm svg{width:100%;height:100%;overflow:visible}
+    radial-gradient(circle closest-side,transparent 0 35%,#080808 35.5% 43%,rgba(255,255,255,.07) 43.4%,transparent 44%),
+    radial-gradient(circle closest-side,transparent 0 59.4%,#060606 59.7% 60.6%,transparent 60.9% 72.4%,#060606 72.7% 73.6%,transparent 73.9% 85.4%,#060606 85.7% 86.6%,transparent 86.9%),
+    radial-gradient(circle closest-side,transparent 0 97.6%,rgba(255,255,255,.2) 98.8%,transparent 100%),
+    repeating-radial-gradient(circle,rgba(255,255,255,.03) 0 .45px,transparent .45px 1.5px),
+    radial-gradient(circle closest-side,#141414,#0b0b0b);
+  box-shadow:0 0 0 1px rgba(0,0,0,.6)}
+.label{position:absolute;inset:33.6%;border-radius:50%;overflow:hidden;background:var(--g);transition:background-color .6s;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.label svg{position:absolute;inset:0;width:100%;height:100%}
+.label text{fill:rgba(13,11,10,.82)}
+.label::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.28),transparent 55%)}
+/* light on the vinyl: fixed to the room, drifting softly */
+.sheen{position:absolute;inset:3%;border-radius:50%;pointer-events:none;z-index:3;
+  background:
+    conic-gradient(from 0deg,transparent 0 4%,rgba(255,255,255,.11) 10%,transparent 17% 50%,rgba(255,255,255,.08) 58%,transparent 65%),
+    conic-gradient(from 150deg,transparent 0 3%,color-mix(in srgb,var(--g) 22%,transparent) 8%,transparent 13%);
+  -webkit-mask:radial-gradient(circle closest-side,transparent 0 37%,#000 46%);mask:radial-gradient(circle closest-side,transparent 0 37%,#000 46%);
+  filter:blur(2px);animation:sheen 9s ease-in-out infinite alternate}
+@keyframes sheen{from{transform:rotate(-7deg)}to{transform:rotate(7deg)}}
+.spindle{position:absolute;left:50%;top:50%;width:3.2%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;z-index:4;
+  background:radial-gradient(circle at 35% 30%,#fff,#b8babd 45%,#6d6f73 100%);box-shadow:0 1px 2px rgba(0,0,0,.6)}
 
-.clip{display:flex;align-items:baseline;gap:8px;font:700 34px/1 var(--mono);font-variant-numeric:tabular-nums}
-.clip small{font:500 13px var(--body);color:var(--muted)}
+/* tonearm */
+.arm{position:absolute;left:0;top:0;width:100%;aspect-ratio:358/330;pointer-events:none;z-index:3;transition:opacity .6s ease}
+.arm svg{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 7px 7px rgba(0,0,0,.55))}
+.tone{transform-box:view-box;transform-origin:334px 30px;transition:transform 1.15s cubic-bezier(.55,0,.18,1.06)}
+.arm.on .tone{transform:rotate(15deg)}
+.stage.revealed .arm{opacity:0}
 
-/* segmented meter: one cell per clip length; a cell takes the colour of that try's result */
-.steps{width:100%;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;direction:ltr}
-.step{display:flex;flex-direction:column;gap:5px;align-items:center}
-.step .bar{position:relative;width:100%;height:10px;border-radius:5px;background:var(--line);overflow:hidden}
-.step .bar i{position:absolute;inset:0 auto 0 0;width:0;background:var(--fg)}
-.step .t{font:500 11px var(--mono);color:var(--muted)}
-.step.cur .bar{background:color-mix(in srgb,var(--accent) 45%,var(--line));box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 50%,transparent)}
-.step.cur .t{color:var(--accent)}
-.step.skip .bar{background:var(--skip)}
-.step.wrong .bar{background:var(--bad)}
-.step.right .bar{background:var(--good)}
-.step.open .bar{background:color-mix(in srgb,var(--fg) 30%,var(--line))}
+/* artwork, resolving in */
+.cover{position:absolute;right:0;top:7px;width:72%;aspect-ratio:1;z-index:4;border-radius:12px;overflow:hidden;background:#1a1716;
+  box-shadow:0 40px 70px -24px rgba(0,0,0,.9),0 12px 28px -12px rgba(0,0,0,.6);
+  opacity:0;transform:scale(.9);filter:blur(18px);pointer-events:none;
+  transition:opacity .9s var(--glide) .15s,transform 1.1s var(--spring) .15s,filter 1s var(--glide) .15s}
+.stage.revealed .cover{opacity:1;transform:none;filter:none;pointer-events:auto;cursor:pointer}
+.cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transition:filter 1.2s ease}
+.cover .fb{position:absolute;inset:0;display:flex;align-items:flex-end;padding:16px;font-size:26px;font-weight:600;line-height:1.05;overflow-wrap:anywhere;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--g) 55%,#1a1716),#1a1716)}
+.cover::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.22) 50%,transparent 65%);transform:translateX(-120%)}
+.stage.won.revealed .cover::after{transition:transform 1.4s ease .9s;transform:translateX(120%)}
+.stage.lost .cover img,.stage.lost .cover .fb{filter:grayscale(1) brightness(.72) contrast(1.05)}
 
-.log{list-style:none;margin:0;padding:0;width:100%;display:flex;flex-direction:column;gap:4px}
-.log:empty{display:none}
-.log li{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--muted);min-width:0}
-.log li b{font:700 11px var(--mono);border-radius:6px;padding:2px 6px;flex:none;color:var(--fg)}
-.log li.wrong b{background:color-mix(in srgb,var(--bad) 35%,transparent)}
-.log li.skip b{background:var(--skip)}
-.log li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.msg{color:var(--muted);text-align:center;font-size:14px;min-height:21px}
+/* ---------- title ---------- */
+.slot{margin-top:22px;min-height:78px}
+.q{font-size:30px;line-height:1.1;font-weight:700;letter-spacing:-.02em;margin:0}
+.liner{margin:6px 0 0;color:var(--fg2);font-size:15px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.retry{border:none;border-radius:999px;height:32px;padding:0 14px;background:var(--glass-2);font-size:14px;font-weight:600}
+.verdict{margin:0 0 4px;font-size:13px;font-weight:600;color:var(--g)}
+.verdict.bad{color:var(--fg2)}
+.song{font-size:28px;line-height:1.12;font-weight:700;letter-spacing:-.02em;margin:0;overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.song.long{font-size:23px}
+.artist{margin:3px 0 0;font-size:19px;color:var(--fg2);font-weight:400}
 
-/* guess: on the main screen a big field-like button that opens the search screen */
-.dock{margin-top:auto;display:flex;flex-direction:column;gap:10px}
-.find{display:flex;align-items:center;gap:10px;width:100%;background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:15px 16px;color:var(--muted);text-align:start;font-size:16px}
-.find svg{width:20px;height:20px;flex:none}
-.find:active{border-color:var(--accent)}
-.btns.one{grid-template-columns:1fr}
+/* ---------- 5-step track ---------- */
+.track{display:grid;gap:5px;grid-template-columns:repeat(5,1fr)}
+.seg{display:flex;flex-direction:column;gap:7px}
+.seg .bar{position:relative;height:4px;border-radius:2px;background:rgba(255,255,255,.13);overflow:hidden;transition:background-color .4s}
+.seg .t{font-size:11px;color:var(--fg3);font-variant-numeric:tabular-nums;text-align:center}
+.seg.cur .bar{background:color-mix(in srgb,var(--g) 38%,transparent)}
+.seg.cur .t{color:var(--fg);font-weight:600}
+.seg.skip .bar{background:rgba(255,255,255,.34)}
+.seg.wrong .bar{background:var(--miss)}
+.seg.right .bar{background:var(--g);box-shadow:0 0 10px var(--g)}
+.seg.right .t{color:var(--g);font-weight:600}
+.seg.open .bar{background:rgba(255,255,255,.08)}
+#prog{position:absolute;inset-block:0;inset-inline-start:0;width:0;background:var(--g);border-radius:2px}
+.track-cap{display:flex;justify-content:space-between;gap:12px;margin-top:10px;font-size:13px;color:var(--fg2);white-space:nowrap}
+.track-cap b{color:var(--fg);font-weight:600}
 
-/* search screen: full screen, input on top, results fill the space down to the keyboard
-   (the standard mobile pattern, e.g. Spotify / YouTube search) */
+/* ---------- actions ---------- */
+.actions{display:flex;gap:10px;margin-top:20px}
+.pill{border:none;border-radius:999px;height:56px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:17px;font-weight:600;white-space:nowrap;
+  transition:transform .25s var(--spring),background-color .3s}
+.pill:active{transform:scale(.965)}
+.pill svg{width:18px;height:18px;flex:none}
+.primary{flex:1;background:var(--g);color:var(--on-accent);box-shadow:0 10px 30px -10px color-mix(in srgb,var(--g) 70%,transparent)}
+.second{flex:none;min-width:104px;padding:0 18px;flex-direction:column;gap:1px;line-height:1.1}
+.second small{font-size:11.5px;font-weight:400;color:var(--fg2)}
+.second.row{flex-direction:row;gap:7px;min-width:0;padding:0 16px}
+.nudge{animation:nudge .45s var(--spring)}
+@keyframes nudge{25%{transform:translateX(-6px)}55%{transform:translateX(5px)}80%{transform:translateX(-2px)}}
+
+.foot{margin-top:14px;min-height:34px;display:flex;justify-content:center;align-items:center;gap:12px;font-size:13px;color:var(--fg2);flex-wrap:wrap}
+.foot button{border:none;background:none;padding:6px 4px;color:var(--fg2);font-size:13px}
+.foot button.yes{color:var(--g);font-weight:600}
+.credit{margin:6px 0 0;text-align:center;font-size:11px;color:var(--fg3)}
+
+/* ---------- search ---------- */
 html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
-.search{position:fixed;left:0;right:0;top:0;height:100%;z-index:50;background:var(--bg);display:flex;flex-direction:column}
-@media (min-width:700px){.search{padding-inline:calc((100vw - 620px)/2)}.sbar{border-radius:0 0 16px 16px}}
-.sbar{display:flex;align-items:center;gap:6px;padding:calc(10px + env(safe-area-inset-top,0px)) 10px 10px;border-bottom:1px solid var(--line);background:var(--bg2);flex:none}
-.icon{width:42px;height:42px;border:none;background:none;border-radius:12px;display:grid;place-items:center;flex:none;color:var(--fg)}
+.search{position:fixed;left:0;right:0;top:0;height:100%;z-index:50;background:#0e0c0b;display:flex;flex-direction:column}
+.search::before{content:"";position:absolute;inset:0 0 auto;height:260px;background:radial-gradient(80% 100% at 50% 0,color-mix(in srgb,var(--g) 20%,transparent),transparent);pointer-events:none}
+@media (min-width:700px){.search{padding-inline:calc((100vw - 620px)/2)}}
+.sbar{position:relative;display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;flex:none;
+  background:rgba(20,17,15,.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:0 .5px 0 var(--hair)}
+.icon{width:38px;height:38px;border:none;background:none;border-radius:50%;display:grid;place-items:center;flex:none;color:var(--g)}
 .icon svg{width:22px;height:22px}
-.sfield{flex:1;min-width:0;display:flex;align-items:center;gap:4px;background:var(--panel);border:1.5px solid color-mix(in srgb,var(--accent) 60%,var(--line));border-radius:14px;padding:0 4px}
-.sfield svg.s{width:18px;height:18px;color:var(--muted);flex:none;margin-inline-start:8px}
-.sfield input{flex:1;min-width:0;background:none;border:none;outline:none;padding:10px 2px;font-size:16px;-webkit-appearance:none;appearance:none}
-.sfield input::placeholder{color:var(--muted)}
+.sfield{flex:1;min-width:0;display:flex;align-items:center;gap:6px;height:40px;background:rgba(118,118,128,.24);border-radius:11px;padding:0 6px 0 4px}
+.sfield svg.s{width:17px;height:17px;color:var(--fg2);flex:none;margin-inline-start:6px}
+.sfield input{flex:1;min-width:0;background:none;border:none;outline:none;padding:8px 2px;font-size:17px;-webkit-appearance:none;appearance:none}
+.sfield input::placeholder{color:var(--fg3)}
 .sfield input::-webkit-search-cancel-button{display:none}
-.clear{background:none;border:none;color:var(--muted);width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none}
-.mini{display:flex;align-items:center;gap:4px;height:42px;padding:0 10px;border:none;border-radius:12px;background:var(--accent);color:var(--ink);font:700 13px var(--mono);flex:none;direction:ltr}
-.mini svg{width:15px;height:15px}
-.sres{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:6px 8px calc(12px + env(safe-area-inset-bottom,0px))}
-.opt{display:flex;gap:12px;align-items:center;width:100%;min-height:64px;background:none;border:none;text-align:start;padding:8px;border-radius:12px;user-select:none;-webkit-user-select:none}
-.opt.act,.opt:active{background:color-mix(in srgb,var(--accent) 16%,transparent)}
-@media (hover:hover){.opt:hover{background:color-mix(in srgb,var(--accent) 12%,transparent)}}
-.opt img{width:48px;height:48px;border-radius:8px;flex:none;background:var(--line);pointer-events:none}
+.clear{background:rgba(255,255,255,.22);border:none;color:#1c1a19;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;flex:none;padding:0}
+.clear svg{width:10px;height:10px}
+.mini{display:flex;align-items:center;gap:6px;height:38px;padding:0 12px 0 4px;border:none;border-radius:999px;background:var(--glass-2);font-size:13px;font-weight:600;flex:none;font-variant-numeric:tabular-nums}
+.mini .md{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--g);color:var(--on-accent)}
+.mini .md svg{width:12px;height:12px}
+.sres{position:relative;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:6px 0 calc(12px + env(safe-area-inset-bottom,0px))}
+.opt{position:relative;display:flex;gap:14px;align-items:center;width:100%;min-height:68px;background:none;border:none;text-align:start;padding:8px 16px;user-select:none;-webkit-user-select:none}
+.opt::after{content:"";position:absolute;bottom:0;inset-inline-start:78px;inset-inline-end:0;height:.5px;background:var(--hair)}
+.opt.act,.opt:active{background:rgba(255,255,255,.07)}
+@media (hover:hover){.opt:hover{background:rgba(255,255,255,.05)}}
+.opt img{width:48px;height:48px;border-radius:6px;flex:none;background:#26221f;pointer-events:none;box-shadow:0 4px 10px -4px rgba(0,0,0,.6)}
 .opt > span{flex:1;min-width:0;pointer-events:none}
 .opt strong,.opt small{text-align:right}
-.opt strong{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.opt small{display:block;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.opt mark{background:none;color:var(--accent);font-weight:700}
-.opt.free{min-height:52px;color:var(--muted);border:1px dashed var(--line);margin-top:6px}
-.opt.free b{color:var(--fg);font-weight:500}
-.opt.free .ic{width:48px;display:grid;place-items:center;flex:none}
-.shint{padding:16px 10px;color:var(--muted);font-size:14px;line-height:1.6}
-.shint h4{margin:14px 0 6px;font-size:12px;font-weight:500;letter-spacing:.3px}
-.shint ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
-.shint li{color:var(--fg);display:flex;gap:8px;align-items:center;min-width:0}
-.shint li b{font:700 11px var(--mono);border-radius:6px;padding:2px 6px;background:color-mix(in srgb,var(--bad) 35%,transparent);flex:none}
+.opt strong{display:block;font-weight:500;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.opt small{display:block;color:var(--fg2);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.opt mark{background:none;color:var(--fg);font-weight:700}
+.opt.free{min-height:56px;margin-top:4px;color:var(--fg2)}
+.opt.free::after{display:none}
+.opt.free b{color:var(--g);font-weight:600}
+.opt.free .ic{width:48px;display:grid;place-items:center;flex:none;color:var(--g)}
+.shint{padding:18px 20px;color:var(--fg2);font-size:15px;line-height:1.5}
+.shint h4{margin:22px 0 4px;font-size:13px;font-weight:600;color:var(--fg2)}
+.shint ul{list-style:none;margin:0;padding:0}
+.shint li{display:flex;gap:12px;align-items:center;min-width:0;height:44px;box-shadow:0 .5px 0 var(--hair);color:var(--fg)}
+.shint li b{font-size:12px;font-weight:600;color:var(--miss);flex:none;font-variant-numeric:tabular-nums;min-width:46px}
 .shint li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.skel{height:64px;border-radius:12px;margin-bottom:4px;background:linear-gradient(90deg,var(--panel) 30%,color-mix(in srgb,var(--panel) 60%,var(--line)) 50%,var(--panel) 70%);background-size:200% 100%;animation:sk 1.1s infinite linear}
-@keyframes sk{from{background-position:100% 0}to{background-position:-100% 0}}
+.skel{height:68px;display:flex;align-items:center;gap:14px;padding:0 16px}
+.skel::before{content:"";width:48px;height:48px;border-radius:6px;background:rgba(255,255,255,.07)}
+.skel::after{content:"";height:11px;width:50%;border-radius:6px;background:rgba(255,255,255,.07);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.4}}
 
-.btns{display:grid;grid-template-columns:1fr 2fr;gap:8px}
-.btns.three{grid-template-columns:1fr 1fr 1.4fr}
-.btn{border:none;border-radius:14px;padding:14px 12px;font-weight:700;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:6px}
-.btn small{font:500 12px var(--mono);opacity:.7}
-.btn svg{width:18px;height:18px}
-.btn.primary{background:var(--accent);color:var(--ink)}
-.btn.primary:disabled{opacity:.4;cursor:default}
-.btn.ghost{background:color-mix(in srgb,var(--panel) 85%,transparent);border:1px solid var(--line)}
-.linkbtn{background:none;border:none;color:var(--muted);font-size:13px;text-decoration:underline;text-underline-offset:3px;align-self:center;padding:4px}
-
-/* reveal */
-.result{text-align:center;display:flex;flex-direction:column;gap:2px;align-items:center}
-.verdict{font:700 15px var(--body);padding:4px 12px;border-radius:999px;margin-bottom:6px}
-.verdict.good{background:color-mix(in srgb,var(--good) 20%,transparent);color:var(--good)}
-.verdict.bad{background:color-mix(in srgb,var(--bad) 20%,transparent);color:var(--bad)}
-.song{font:700 24px/1.2 var(--display);text-wrap:balance}
-.artist{color:var(--muted)}
-
-/* bottom sheet */
-.scrim{position:fixed;inset:0;background:#0008;backdrop-filter:blur(3px);z-index:30;opacity:0;pointer-events:none;transition:opacity .2s}
+/* ---------- settings sheet ---------- */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:30;opacity:0;pointer-events:none;transition:opacity .35s ease}
 .scrim.open{opacity:1;pointer-events:auto}
-.sheet{position:fixed;inset-inline:0;bottom:0;z-index:31;background:var(--bg2);border-top:1px solid var(--line);border-radius:22px 22px 0 0;
-  padding:10px 16px calc(18px + env(safe-area-inset-bottom,0px));max-width:520px;margin:0 auto;transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.9,.3,1);
-  max-height:88svh;overflow:auto}
+.sheet{position:fixed;inset-inline:0;bottom:0;z-index:31;max-width:480px;margin:0 auto;display:flex;flex-direction:column;max-height:90svh;
+  background:rgba(30,27,25,.78);-webkit-backdrop-filter:blur(40px) saturate(1.8);backdrop-filter:blur(40px) saturate(1.8);
+  border-radius:16px 16px 0 0;box-shadow:inset 0 .5px 0 rgba(255,255,255,.14),0 -20px 60px rgba(0,0,0,.5);
+  transform:translateY(105%);transition:transform .5s cubic-bezier(.3,1.06,.4,1)}
 .sheet.open{transform:none}
-.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 12px}
-.sheet h2{font:600 20px var(--display);margin:0 0 4px}
-.sheet h3{font-size:13px;font-weight:500;color:var(--muted);margin:16px 0 8px;letter-spacing:.3px}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:8px 14px;font-size:15px}
-.chip i{width:9px;height:9px;border-radius:50%}
-.chip[aria-pressed="true"]{border-color:var(--fg);background:var(--fg);color:var(--bg)}
-.levels{display:flex;flex-direction:column;gap:6px}
-.level{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 14px;text-align:start;width:100%}
-.level .n{font-weight:700}
-.level small{display:block;color:var(--muted);font-size:13px}
-.level .x{margin-inline-start:auto;font:700 13px var(--mono);color:var(--muted)}
-.level[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
-.level[aria-pressed="true"] .x{color:var(--accent)}
-.sheet .help{font-size:14px;color:var(--muted);line-height:1.6;margin:0}
-.sheet .done{width:100%;margin-top:16px}
+.grab{width:36px;height:5px;border-radius:3px;background:rgba(255,255,255,.25);margin:7px auto 0;flex:none}
+.sheet-body{overflow:auto;padding:12px 20px 14px}
+.sheet h2{font-size:17px;font-weight:600;text-align:center;margin:4px 0 10px}
+.sheet h3{font-size:13px;font-weight:400;color:var(--fg2);margin:20px 4px 10px}
+.genres{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 6px;padding:16px 8px 14px;border-radius:14px;background:rgba(255,255,255,.05)}
+.gbtn{border:none;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;color:var(--fg2)}
+.gbtn .sw{position:relative;width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--c) 70%,#fff),var(--c) 55%,color-mix(in srgb,var(--c) 70%,#000));
+  transition:transform .35s var(--spring),box-shadow .3s}
+.gbtn[aria-pressed="true"]{color:var(--fg);font-weight:600}
+.gbtn[aria-pressed="true"] .sw{box-shadow:0 0 0 3px rgba(30,27,25,.95),0 0 0 5px var(--c);transform:scale(1.04)}
+.gbtn .sw svg{position:absolute;inset:0;margin:auto;width:18px;height:18px;color:rgba(13,11,10,.85);opacity:0;transition:opacity .2s}
+.gbtn[aria-pressed="true"] .sw svg{opacity:1}
+.seg5{position:relative;display:grid;grid-template-columns:repeat(5,1fr);padding:2px;border-radius:10px;background:rgba(118,118,128,.24)}
+.lv{position:relative;z-index:1;border:none;background:none;border-radius:8px;min-height:50px;padding:5px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:13px;font-weight:500;line-height:1.15;text-align:center;transition:background-color .25s}
+.lv small{font-size:11px;color:var(--fg2);font-weight:400;font-variant-numeric:tabular-nums}
+.lv[aria-pressed="true"]{background:rgba(255,255,255,.2);box-shadow:0 3px 8px rgba(0,0,0,.25);font-weight:600}
+.lv[aria-pressed="true"] small{color:var(--fg)}
+.ldesc{margin:10px 4px 0;font-size:13px;color:var(--fg2);min-height:18px}
+.sheet .help{margin:0 4px;font-size:14px;line-height:1.5;color:var(--fg2)}
+.sheet-foot{padding:10px 20px calc(14px + env(safe-area-inset-bottom,0px))}
+.sheet-foot .pill{width:100%;height:52px}
 
-.toast{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:40;max-width:calc(100% - 32px)}
-.pop{position:absolute;top:40%;left:50%;font:700 34px var(--display);color:var(--good);pointer-events:none;z-index:6;text-shadow:0 4px 20px #000a;animation:pop 1.1s ease-out forwards}
-@keyframes pop{from{transform:translate(-50%,0) scale(.6);opacity:0}20%{opacity:1;transform:translate(-50%,-10px) scale(1.1)}to{transform:translate(-50%,-70px) scale(1);opacity:0}}
-.shake{animation:shake .35s}
-@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
-#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:35}
+.toast{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:60;max-width:calc(100% - 40px);
+  padding:11px 18px;border-radius:999px;font-size:14px;font-weight:500;overflow-wrap:anywhere;
+  background:rgba(40,36,33,.78);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+
+@media (max-height:740px){
+  .stage-box{width:min(88%,400px);margin-top:12px}
+  .slot{margin-top:16px}
+  #score{font-size:46px}
+  .actions{margin-top:16px}
+}
+@media (min-width:520px){ .app{padding-top:32px} }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<canvas id="confetti"></canvas>
-<div class="wrap">
-  <header>
-    <div class="logo"><span class="dot"></span>Blip</div>
-    <div class="stats">
-      <div class="stat" id="streakBox"><small>רצף</small><b id="streak">0</b></div>
-      <div class="stat"><small>שיא</small><b id="best">0</b></div>
-      <div class="stat"><small>נקודות</small><b id="score">0</b></div>
+<div class="ambient" id="ambient" aria-hidden="true"><i class="a1"></i><i class="a2"></i><div class="art-glow" id="artGlow"></div></div>
+
+<main class="app">
+  <header class="top">
+    <div class="score">
+      <b id="score">0</b>
+      <span class="cap"><span>נקודות</span><span class="dot">·</span><span>רצף <b id="streak">0</b></span><span class="dot">·</span><span>שיא רצף <b id="best">0</b></span></span>
     </div>
+    <button class="chip glass" id="openSettings" aria-haspopup="dialog">
+      <span class="orb"></span><span id="tagGenre">הכל</span><span class="sub" id="tagDiff">בינוני</span>
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5 6 7.5l3-3"/></svg>
+    </button>
   </header>
 
-  <button class="setbar" id="openSettings" aria-haspopup="dialog">
-    <span class="k">משחק</span>
-    <span class="v"><i></i><span id="setLabel">הכל · בינוני</span></span>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
-  </button>
-
-  <section class="stage" aria-live="polite">
-    <div class="deck" id="deck">
-      <div class="disc" id="disc"><div class="label" id="label"><img id="art" alt=""></div></div>
-      <div class="arm" id="arm" aria-hidden="true">
-        <svg viewBox="0 0 60 120"><circle cx="8" cy="8" r="7" fill="#2c2748" stroke="#4a4566" stroke-width="2"/><path d="M8 8 L22 70 L30 100" stroke="#b9b4d6" stroke-width="3.5" fill="none" stroke-linecap="round"/><rect x="24" y="96" width="14" height="20" rx="3" fill="#b9b4d6" transform="rotate(-15 31 106)"/></svg>
+  <div class="stage-box">
+  <section class="stage" id="deck">
+    <button class="deck" id="play" aria-label="נגן את הקטע" disabled>
+      <span class="rim"></span>
+      <div class="disc" id="disc">
+        <span class="strobe"></span>
+        <span class="vinyl"></span>
+        <div class="label" id="label">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <text direction="ltr" x="50" y="31" text-anchor="middle" style="font:600 9px -apple-system,Heebo,sans-serif;letter-spacing:2.6px">BLIP</text>
+            <text direction="ltr" id="lblCat" x="50" y="77" text-anchor="middle" style="font:500 4.6px -apple-system,Heebo,sans-serif;letter-spacing:1.2px">BLIP-001 · 33⅓</text>
+            <circle cx="22" cy="50" r="1.6" fill="rgba(13,11,10,.7)"/>
+          </svg>
+        </div>
       </div>
-      <button class="play" id="play" aria-label="נגן קטע" disabled></button>
+      <span class="sheen"></span>
+      <span class="spindle"></span>
+    </button>
+    <div class="arm" id="arm" aria-hidden="true">
+      <svg viewBox="0 0 358 330">
+        <defs>
+          <linearGradient id="alu" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6c6e73"/><stop offset=".45" stop-color="#f4f5f7"/><stop offset="1" stop-color="#7f8186"/></linearGradient>
+          <linearGradient id="gra" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1b1b1d"/><stop offset=".5" stop-color="#4a4a4e"/><stop offset="1" stop-color="#1b1b1d"/></linearGradient>
+          <radialGradient id="cap" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#b9bbbf"/><stop offset="1" stop-color="#5f6165"/></radialGradient>
+          <radialGradient id="base" cx=".4" cy=".35" r=".75"><stop offset="0" stop-color="#3a3836"/><stop offset="1" stop-color="#151413"/></radialGradient>
+        </defs>
+        <circle cx="347" cy="203" r="6" fill="url(#gra)"/><circle cx="347" cy="203" r="2.4" fill="url(#cap)"/>
+        <circle cx="334" cy="30" r="24" fill="url(#base)"/>
+        <circle cx="334" cy="30" r="23.5" fill="none" stroke="rgba(255,255,255,.12)"/>
+        <g class="tone">
+          <rect x="325" y="-9" width="18" height="17" rx="3" fill="url(#gra)"/>
+          <path d="M325 -3h18M325 1h18" stroke="rgba(255,255,255,.12)" stroke-width=".8"/>
+          <path d="M334 8V30" stroke="url(#alu)" stroke-width="4.5"/>
+          <path d="M334 30V219L321.5 243" fill="none" stroke="url(#alu)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <g transform="rotate(28 318 250)">
+            <rect x="312" y="240" width="12" height="21" rx="2" fill="#1c1c1e"/>
+            <path d="M324 245h8" stroke="url(#alu)" stroke-width="1.8" stroke-linecap="round"/>
+            <rect x="315.5" y="258" width="5" height="4" rx="1" fill="#8d8f93"/>
+          </g>
+        </g>
+        <circle cx="334" cy="30" r="11" fill="url(#cap)"/>
+        <circle cx="334" cy="30" r="4" fill="#2a2a2c"/>
+      </svg>
     </div>
-    <div class="clip"><span id="clipLen">0.1s</span><small id="clipHint">מתחילת הקטע</small></div>
-    <div class="steps" id="steps"></div>
-    <ul class="log" id="log"></ul>
-    <div class="msg" id="msg">טוען שיר…</div>
+    <div class="cover" id="cover">
+      <div class="fb" id="coverFb" dir="auto"></div>
+      <img id="art" alt="">
+    </div>
   </section>
+  </div>
 
-  <div class="dock">
-    <div id="playArea">
-      <button class="find" id="findBtn" aria-haspopup="dialog">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <span>חפש את השיר…</span>
-      </button>
-    </div>
-    <div class="btns one" id="roundActions">
-      <button class="btn ghost" id="skip">דלג <small id="skipHint" dir="ltr"></small></button>
+  <div class="slot" aria-live="polite">
+    <div id="ask">
+      <h1 class="q" id="q">מה השיר?</h1>
+      <p class="liner"><span id="msg">מכין תקליט…</span><button class="retry" id="retry" hidden>נסה שוב</button></p>
     </div>
     <div class="result" id="result" hidden>
-      <div class="verdict" id="verdict"></div>
-      <div class="song" id="song" dir="auto"></div>
-      <div class="artist" id="artist" dir="auto"></div>
+      <p class="verdict" id="verdict"></p>
+      <h2 class="song" id="song" dir="auto"></h2>
+      <p class="artist" id="artist" dir="auto"></p>
     </div>
-    <div class="btns three" id="endActions" hidden>
-      <button class="btn ghost" id="full"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>30s</button>
-      <button class="btn ghost" id="share">אתגר חבר</button>
-      <button class="btn primary" id="next">שיר הבא</button>
-    </div>
-    <button class="linkbtn" id="reroll">החלף שיר</button>
   </div>
-</div>
+
+  <div class="spacer"></div>
+
+  <div class="track" id="steps" role="list"></div>
+  <div class="track-cap"><span id="worth"></span><span id="tlMult"></span></div>
+
+  <div class="actions" id="playArea">
+    <button class="pill primary" id="findBtn" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.5-4.5"/></svg>נחש
+    </button>
+    <button class="pill second glass" id="skip"><span id="skipK">דלג</span><small id="skipHint"></small></button>
+  </div>
+  <div class="actions" id="endActions" hidden>
+    <button class="pill primary" id="next">שיר הבא</button>
+    <button class="pill second glass row" id="full" aria-label="נגן 30 שניות"><span id="fullIcon"></span><span id="fullK"></span></button>
+    <button class="pill second glass row" id="share" aria-label="אתגר חבר"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>אתגר</button>
+  </div>
+
+  <div class="foot" id="rrBox">
+    <button id="reroll">החלף שיר</button>
+    <span id="rerollAsk" hidden>הרצף שלך (<bdi id="rrN">0</bdi>) יתאפס. <button class="yes" id="rerollYes">החלף בכל זאת</button><button id="rerollNo">ביטול</button></span>
+  </div>
+  <p class="credit">קטעי השמע: Deezer</p>
+</main>
 
 <div class="search" id="search" hidden role="dialog" aria-label="חיפוש שיר">
   <div class="sbar">
-    <button class="icon" id="sClose" aria-label="חזרה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+    <button class="icon" id="sClose" aria-label="חזרה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
     <div class="sfield">
-      <svg class="s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="guess" type="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" placeholder="שם השיר או האמן" aria-label="חיפוש שיר" role="combobox" aria-controls="sugg" aria-expanded="true">
-      <button class="clear" id="clear" aria-label="נקה" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      <svg class="s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.5-4.5"/></svg>
+      <input id="guess" type="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" placeholder="שירים, אמנים" aria-label="חיפוש שיר" role="combobox" aria-controls="sugg" aria-expanded="true">
+      <button class="clear" id="clear" aria-label="נקה" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M7 7l10 10M17 7 7 17"/></svg></button>
     </div>
-    <button class="mini" id="sPlay" aria-label="נגן את הקטע"><span id="sPlayIcon"></span><span id="sClip">0.1s</span></button>
+    <button class="mini" id="sPlay" aria-label="נגן את הקטע"><span class="md" id="sPlayIcon"></span><span id="sClip"></span></button>
   </div>
   <div class="sres" id="sugg" role="listbox"></div>
 </div>
+
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
   <div class="grab"></div>
-  <h2 id="sheetTitle">הגדרות משחק</h2>
-  <h3>ז'אנר</h3>
-  <div class="chips" id="genres"></div>
-  <h3>רמת קושי</h3>
-  <div class="levels" id="levels"></div>
-  <h3>איך משחקים</h3>
-  <p class="help">לוחצים על התקליט ושומעים 0.1 שניות. לוחצים על "חפש את השיר", מקלידים, ולוחצים על השיר ברשימה. זה הניחוש. דילוג או טעות פותחים קטע ארוך יותר: 0.5, 2, 8 ואז 15 שניות. ניחוש מוקדם שווה יותר נקודות, והרצף נשמר עד הטעות הראשונה. הקטעים מגיעים מהתצוגות המקדימות של Deezer.</p>
-  <button class="btn primary done" id="closeSettings">שחק</button>
+  <div class="sheet-body">
+    <h2 id="sheetTitle">הגדרות</h2>
+    <h3>ז'אנר</h3>
+    <div class="genres" id="genres"></div>
+    <h3>רמת קושי</h3>
+    <div class="seg5" id="levels"></div>
+    <p class="ldesc" id="levelDesc"></p>
+    <h3>איך משחקים</h3>
+    <p class="help">הקש על התקליט ותשמע <bdi>0.1</bdi> שניות. לחץ ״נחש״, הקלד ובחר את השיר — הבחירה היא הניחוש. דילוג או טעות פותחים <bdi>0.5</bdi>, <bdi>2</bdi>, <bdi>8</bdi> ואז <bdi>15</bdi> שניות. ניחוש מוקדם שווה יותר, והרצף נשמר עד הפספוס הראשון.</p>
+  </div>
+  <div class="sheet-foot"><button class="pill primary" id="closeSettings">סיום</button></div>
 </div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
 const GENRES = {
-  all:    {label:"הכל", color:"#ffb020"},
-  il:     {label:"ישראלי", color:"#4da3ff", artists:["Omer Adam","Eyal Golan","Noa Kirel","Static & Ben El","Osher Cohen","Eden Hason","Shlomo Artzi","Arik Einstein","Mashina","Aviv Geffen","Ivri Lider","Stephane Legar","Anna Zak","Nasrin Kadri","Hadag Nahash","Sarit Hadad","Mosh Ben Ari","Nathan Goshen","Agam Buhbut","Ishay Ribo","Harel Skaat","Shalom Hanoch","Ravid Plotnik","Eden Ben Zaken"]},
-  pop:    {label:"פופ", color:"#ff5fa2", artists:["Taylor Swift","Dua Lipa","Ed Sheeran","Ariana Grande","The Weeknd","Billie Eilish","Harry Styles","Bruno Mars","Lady Gaga","Rihanna","Katy Perry","Justin Bieber","Olivia Rodrigo","Sabrina Carpenter","Miley Cyrus","Adele","Coldplay","Maroon 5","Michael Jackson","Madonna","Britney Spears","ABBA"]},
-  hiphop: {label:"היפ‑הופ", color:"#ffd23f", artists:["Drake","Kendrick Lamar","Eminem","Travis Scott","Kanye West","J. Cole","Post Malone","Nicki Minaj","Cardi B","Doja Cat","50 Cent","JAY-Z","Future","Snoop Dogg","OutKast","2Pac","The Notorious B.I.G.","Lil Wayne"]},
-  rock:   {label:"רוק", color:"#ff5a3d", artists:["Queen","Nirvana","Linkin Park","Red Hot Chili Peppers","Foo Fighters","Arctic Monkeys","Imagine Dragons","The Killers","Green Day","AC/DC","Guns N' Roses","Muse","Radiohead","Oasis","The Beatles","Bon Jovi","Twenty One Pilots","The Rolling Stones"]},
-  rnb:    {label:"R&B", color:"#a77bff", artists:["Beyoncé","Usher","SZA","Frank Ocean","Alicia Keys","Chris Brown","Daniel Caesar","Khalid","John Legend","Mariah Carey","Whitney Houston","Destiny's Child","Ne-Yo"]},
-  kpop:   {label:"K‑Pop", color:"#2ee6d6", artists:["BTS","BLACKPINK","TWICE","Stray Kids","NewJeans","SEVENTEEN","EXO","Red Velvet","aespa","IVE","LE SSERAFIM","BIGBANG","PSY","ITZY"]}
+  all:    {label:"הכל", color:"#b9b5c9"},
+  il:     {label:"ישראלי", color:"#5d92d9", artists:["Omer Adam","Eyal Golan","Noa Kirel","Static & Ben El","Osher Cohen","Eden Hason","Shlomo Artzi","Arik Einstein","Mashina","Aviv Geffen","Ivri Lider","Stephane Legar","Anna Zak","Nasrin Kadri","Hadag Nahash","Sarit Hadad","Mosh Ben Ari","Nathan Goshen","Agam Buhbut","Ishay Ribo","Harel Skaat","Shalom Hanoch","Ravid Plotnik","Eden Ben Zaken"]},
+  pop:    {label:"פופ", color:"#e27ba0", artists:["Taylor Swift","Dua Lipa","Ed Sheeran","Ariana Grande","The Weeknd","Billie Eilish","Harry Styles","Bruno Mars","Lady Gaga","Rihanna","Katy Perry","Justin Bieber","Olivia Rodrigo","Sabrina Carpenter","Miley Cyrus","Adele","Coldplay","Maroon 5","Michael Jackson","Madonna","Britney Spears","ABBA"]},
+  hiphop: {label:"היפ-הופ", color:"#e0b04a", artists:["Drake","Kendrick Lamar","Eminem","Travis Scott","Kanye West","J. Cole","Post Malone","Nicki Minaj","Cardi B","Doja Cat","50 Cent","JAY-Z","Future","Snoop Dogg","OutKast","2Pac","The Notorious B.I.G.","Lil Wayne"]},
+  rock:   {label:"רוק", color:"#d65f50", artists:["Queen","Nirvana","Linkin Park","Red Hot Chili Peppers","Foo Fighters","Arctic Monkeys","Imagine Dragons","The Killers","Green Day","AC/DC","Guns N' Roses","Muse","Radiohead","Oasis","The Beatles","Bon Jovi","Twenty One Pilots","The Rolling Stones"]},
+  rnb:    {label:"R&B", color:"#9c84e0", artists:["Beyoncé","Usher","SZA","Frank Ocean","Alicia Keys","Chris Brown","Daniel Caesar","Khalid","John Legend","Mariah Carey","Whitney Houston","Destiny's Child","Ne-Yo"]},
+  kpop:   {label:"K-Pop", color:"#4cc2ad", artists:["BTS","BLACKPINK","TWICE","Stray Kids","NewJeans","SEVENTEEN","EXO","Red Velvet","aespa","IVE","LE SSERAFIM","BIGBANG","PSY","ITZY"]}
 };
 const STAGES = [0.1, 0.5, 2, 8, 15];
 const POINTS = [5, 4, 3, 2, 1];
@@ -302,8 +411,8 @@ const DIFF = {
   easy:      {label:"קל", desc:"רק הלהיטים הגדולים", depth:10, mult:1},
   medium:    {label:"בינוני", desc:"25 השירים המובילים של כל אמן", depth:25, mult:1.5},
   hard:      {label:"קשה", desc:"גם שירים פחות מוכרים", depth:50, mult:2},
-  expert:    {label:"מומחה", desc:"מתחיל מנקודה אקראית בשיר", depth:50, mult:3, offset:true},
-  impossible:{label:"בלתי אפשרי", desc:"נקודה אקראית, עד 2 שניות בלבד", depth:50, mult:5, offset:true, maxStage:2}
+  expert:    {label:"מומחה", desc:"הקטע מתחיל בנקודה אקראית בשיר", depth:50, mult:3, offset:true},
+  impossible:{label:"בלתי אפשרי", desc:"נקודה אקראית, ועד 2 שניות בלבד", depth:50, mult:5, offset:true, maxStage:2}
 };
 const JUNK = /\b(live|karaoke|instrumental|remix|acoustic|version|edit|demo|commentary|interview|sped up|slowed)\b/i;
 
@@ -313,17 +422,20 @@ const store = {
   set(k,v){try{localStorage.setItem("blip_"+k,JSON.stringify(v))}catch{}}
 };
 const ICON = {
-  play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg>',
-  pause:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.5 5h4v14h-4zm7 0h4v14h-4z"/></svg>'
+  play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.8v14.4c0 .8.9 1.3 1.6.8l11-7.2c.6-.4.6-1.2 0-1.6l-11-7.2C7.9 3.5 7 4 7 4.8z"/></svg>',
+  pause:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4.5" width="4.2" height="15" rx="1.2"/><rect x="13.8" y="4.5" width="4.2" height="15" rx="1.2"/></svg>'
 };
+const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 let genre = store.get("genre","all"); if (!GENRES[genre]) genre = "all";
 let diff = store.get("diff","medium"); if (!DIFF[diff]) diff = "medium";
 let stats = {streak:store.get("streak",0), best:store.get("best",0), score:store.get("score",0)};
+let plays = store.get("plays",0), catNo = plays + 1;
+let seen = store.get("seen",false);
 let round = null, lastId = null;
 const audio = new Audio(); audio.preload = "auto";
 let rafId = 0, clipEnd = 0, playing = false;
-let selected = null;
+let selected = null, revealT = 0;
 
 /* ---------- Deezer API (JSONP, no key) ---------- */
 function jsonp(url){
@@ -387,17 +499,46 @@ async function pickTrack(){
   throw err || new Error("no tracks");
 }
 
+/* ---------- formatting (numbers are always isolated for RTL) ---------- */
+const N = v => `<bdi dir="ltr">${v}</bdi>`;
+const ptsOf = i => Math.round(POINTS[i] * (round ? round.mult : DIFF[diff].mult));
+const secWord = v => v === 1 ? "שנייה" : "שניות";
+
+/* ---------- the platter: spins up and down with weight ---------- */
+const discEl = $("disc");
+const spin = {a:0, v:0, last:0, raf:0, coast:false};
+const VMAX = 200;                                   // deg/s
+function spinFrame(now){
+  const dt = Math.min(.05, (now - spin.last)/1000); spin.last = now;
+  const on = discEl.classList.contains("spin");
+  const tau = on ? .5 : (spin.coast ? 1.1 : .7);
+  spin.v += ((on ? VMAX : 0) - spin.v) * (1 - Math.exp(-dt/tau));
+  if (!on && spin.v < 6) spin.v = 0;
+  spin.a = (spin.a + spin.v*dt) % 360;
+  discEl.style.transform = `rotate(${spin.a.toFixed(2)}deg)`;
+  if (on || spin.v > 0) spin.raf = requestAnimationFrame(spinFrame);
+  else { spin.raf = 0; spin.coast = false; }
+}
+function kickSpin(){ if (reduced() || spin.raf) return; spin.last = performance.now(); spin.raf = requestAnimationFrame(spinFrame); }
+new MutationObserver(kickSpin).observe(discEl, {attributes:true, attributeFilter:["class"]});
+function coast(){ if (reduced()) return; spin.v = Math.max(spin.v, VMAX*.75); spin.coast = true; kickSpin(); }
+
 /* ---------- round flow ---------- */
 async function newRound(sharedId){
   stopAudio();
+  clearTimeout(revealT); cancelReroll();
   if (round) lastId = round.track.id;
   round = null; selected = null; resetField();
-  $("play").disabled = true; $("play").classList.add("loading");
-  $("label").classList.remove("shown"); $("art").removeAttribute("src");
+  catNo = plays + 1; renderCat();
+  $("deck").classList.remove("revealed","won","lost");
+  $("ambient").classList.remove("art","muted");
+  $("play").disabled = true;
+  $("label").classList.remove("shown"); $("art").removeAttribute("src"); $("art").hidden = false;
   $("result").hidden = true; $("endActions").hidden = true;
-  $("roundActions").hidden = false; $("playArea").hidden = false; $("reroll").hidden = false;
+  $("ask").hidden = false; $("playArea").hidden = false; $("rrBox").hidden = false;
+  $("q").textContent = "מה השיר?";
   hideSugg();
-  msg("טוען שיר…");
+  msg("מכין תקליט…");
   renderStage();
   try{
     const track = sharedId ? await getTrack(sharedId) : await pickTrack();
@@ -406,33 +547,38 @@ async function newRound(sharedId){
              offset: d.offset ? Math.random()*Math.max(0, 28 - STAGES[maxStage]) : 0};
     audio.src = track.preview; audio.load();
     $("play").disabled = false;
-    msg(sharedId ? "חבר שלח לך את השיר הזה. בהצלחה." : "לחץ על התקליט כדי לשמוע");
+    msg(sharedId ? "חבר שלח לך את השיר הזה. בהצלחה."
+      : !seen ? "הקש על התקליט כדי לשמוע עשירית שנייה מהשיר."
+      : round.offset ? "הקש על התקליט. הקטע מתחיל בנקודה אקראית." : "הקש על התקליט כדי לשמוע.");
   }catch(e){
-    msg(navigator.onLine===false ? "אין חיבור לאינטרנט." : `לא הצלחתי לטעון שיר (${e.message}). לחץ "החלף שיר".`);
+    $("q").textContent = "לא הצלחנו להביא שיר";
+    fail(navigator.onLine===false ? "אין חיבור לאינטרנט. התחבר ונסה שוב." : "זה קורה לפעמים. נסה שוב בעוד רגע.");
   }
-  $("play").classList.remove("loading");
   renderStage();
 }
 
 function renderStage(){
   const st = round ? round.stage : 0, max = round ? round.maxStage : (DIFF[diff].maxStage ?? 4), done = !!round?.done;
-  $("clipLen").textContent = (done ? 30 : STAGES[st]) + "s";
-  $("clipHint").textContent = done ? "תצוגה מקדימה מלאה" : (round?.offset ? "מנקודה אקראית" : "מתחילת הקטע");
+  const names = {skip:"דילוג", wrong:"ניחוש שגוי", right:"זיהית", cur:"הקטע הנוכחי", lock:"נעול", open:""};
   const cells = [];
   for (let i=0;i<=max;i++){
     const r = round?.results[i];
-    let cls = "step";
-    if (r) cls += " " + r.type;
-    else if (!done && i===st) cls += " cur";
-    else if (done || i < st) cls += " open";
-    cells.push(`<div class="${cls}"><span class="bar">${!done && i===st ? '<i id="prog"></i>' : ""}</span><span class="t">${STAGES[i]}s</span></div>`);
+    const state = r ? r.type : (!done && i===st ? "cur" : (done || i < st) ? "open" : "lock");
+    cells.push(`<div class="seg ${state}" role="listitem" aria-label="${STAGES[i]} שניות, ${ptsOf(i)} נקודות. ${names[state]}"><span class="bar">${state==="cur" ? '<i id="prog"></i>' : ""}</span><span class="t">${STAGES[i]}</span></div>`);
   }
   $("steps").style.gridTemplateColumns = `repeat(${max+1},1fr)`;
   $("steps").innerHTML = cells.join("");
-  $("log").innerHTML = (round?.results||[]).map((r,i)=> r && r.type!=="right"
-    ? `<li class="${r.type}"><b>${STAGES[i]}s</b><span dir="auto">${r.type==="skip"?"דילוג":esc(r.text)}</span></li>` : "").join("");
-  $("skipHint").textContent = round && !done && st < max ? `+${+(STAGES[st+1]-STAGES[st]).toFixed(1)}s` : "";
-  $("sClip").textContent = (done ? 30 : STAGES[st]) + "s";
+  const cur = Math.min(st, max), s = STAGES[cur];
+  $("worth").innerHTML = done ? `אורך הקטע, בשניות` : `<b>${N(s)} ${secWord(s)}</b> · שווה ${N(ptsOf(cur))} נק׳`;
+  $("tlMult").innerHTML = `${DIFF[diff].label} ${N("×"+(round ? round.mult : DIFF[diff].mult))}`;
+  if (round && !done && st < max){
+    $("skipK").textContent = "דלג";
+    $("skipHint").innerHTML = `${N("−"+(ptsOf(st)-ptsOf(st+1)))} נק׳`;
+  } else {
+    $("skipK").textContent = "וותר";
+    $("skipHint").innerHTML = round && !done && stats.streak ? "הרצף יתאפס" : "חשוף שיר";
+  }
+  $("sClip").innerHTML = `${N(done ? 30 : STAGES[st])} שנ׳`;
 }
 
 function advance(result){
@@ -440,29 +586,43 @@ function advance(result){
   if (round.stage >= round.maxStage){ endRound(false); return; }
   round.stage++;
   renderStage();
-  msg(`נפתחו ${STAGES[round.stage]} שניות. נסה שוב.`);
+  const s = STAGES[round.stage], len = `${N(s)} ${secWord(s)}`;
+  if (result.type==="skip") msgHTML(`עכשיו ${len}. הקש על התקליט.`);
+  else msgHTML(`לא ״<bdi>${esc(result.text.split(" — ")[0])}</bdi>״. עכשיו ${len}.`);
 }
 
 function endRound(won){
-  round.done = true; stopAudio(); hideSugg();
-  const t = round.track;
+  round.done = true; stopAudio(); hideSugg(); cancelReroll();
+  const t = round.track, stage = $("deck"), amb = $("ambient");
+  const prevScore = stats.score, hadStreak = stats.streak;
   if (won){
-    const pts = Math.round(POINTS[round.stage] * round.mult);
+    const pts = Math.round(POINTS[round.stage] * round.mult), s = STAGES[round.stage];
     stats.score += pts; stats.streak++; stats.best = Math.max(stats.best, stats.streak);
-    $("verdict").textContent = `זיהית אחרי ${STAGES[round.stage]} שניות`;
+    $("verdict").innerHTML = `זיהית אחרי ${N(s)} ${secWord(s)} · ${N("+"+pts)} נק׳`;
     $("verdict").className = "verdict good";
-    popScore("+"+pts); confetti();
   } else {
     stats.streak = 0;
-    $("verdict").textContent = "לא הפעם";
+    $("verdict").innerHTML = hadStreak ? `לא הפעם · רצף של ${N(hadStreak)} הסתיים` : "לא הפעם";
     $("verdict").className = "verdict bad";
   }
+  plays++; store.set("plays", plays);
   ["streak","best","score"].forEach(k=>store.set(k,stats[k]));
-  renderStats();
-  $("art").src = t.art; $("label").classList.add("shown");
-  $("song").textContent = t.title; $("artist").textContent = t.artist;
-  $("result").hidden = false; msg("");
-  $("playArea").hidden = true; $("roundActions").hidden = true; $("reroll").hidden = true; $("endActions").hidden = false;
+  $("art").src = t.art; $("art").hidden = !t.art; $("label").classList.add("shown");
+  $("coverFb").textContent = t.title; $("coverFb").hidden = !!t.art;
+  $("artGlow").style.backgroundImage = t.art ? `url(${JSON.stringify(t.art)})` : "none";
+  $("song").textContent = t.title; $("song").classList.toggle("long", t.title.length > 24);
+  $("artist").textContent = t.artist;
+  stage.classList.toggle("won", won); stage.classList.toggle("lost", !won);
+  if (won){ stage.classList.add("revealed"); amb.classList.add("art"); }
+  else {
+    coast();                                       // the platter winds down, then the cover settles in grey
+    amb.classList.add("muted");
+    revealT = setTimeout(()=>{ stage.classList.add("revealed"); amb.classList.add("art"); }, reduced() ? 0 : 1100);
+  }
+  try{ navigator.vibrate && navigator.vibrate(won ? [12,50,18] : 30); }catch{}
+  renderStats(won ? prevScore : null);
+  $("result").hidden = false; $("ask").hidden = true; msg("");
+  $("playArea").hidden = true; $("rrBox").hidden = true; $("endActions").hidden = false;
   renderStage();
 }
 
@@ -482,7 +642,7 @@ function submitGuess(){
   if (!text && !selected) return;
   const cand = selected || {title:text};
   const label = selected ? `${selected.title} — ${selected.artist}` : text;
-  selected = null; resetField(); closeSearch();
+  selected = null; resetField(); closeSearch(); markSeen();
   if (isCorrect(cand)){ round.results[round.stage] = {type:"right", text:label}; endRound(true); }
   else { buzz(); advance({type:"wrong", text:label}); }
 }
@@ -537,13 +697,13 @@ function renderResults(){
   const q = input.value.trim();
   if (q.length < 2){
     const tried = (round?.results||[]).filter(r=>r && r.type==="wrong");
-    list.innerHTML = `<div class="shint">הקלד לפחות 2 אותיות של שם השיר או האמן, ולחץ על השיר ברשימה.${
-      tried.length ? `<h4>כבר ניסית בסיבוב הזה</h4><ul>${(round.results).map((r,i)=>r&&r.type==="wrong"?`<li><b dir="ltr">${STAGES[i]}s</b><span dir="auto">${esc(r.text)}</span></li>`:"").join("")}</ul>` : ""}</div>`;
+    list.innerHTML = `<div class="shint">הקלד שם של שיר או אמן ובחר מהרשימה. הבחירה היא הניחוש.${
+      tried.length ? `<h4>כבר ניסית בסיבוב הזה</h4><ul>${(round.results).map((r,i)=>r&&r.type==="wrong"?`<li><b>${N(STAGES[i])} שנ׳</b><span dir="auto">${esc(r.text)}</span></li>`:"").join("")}</ul>` : ""}</div>`;
     return;
   }
-  const free = `<button type="button" class="opt free" data-free="1"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6" transform="matrix(-1 0 0 1 24 0)"/></svg></span><span>לא ברשימה? נחש <b dir="auto">"${esc(q)}"</b></span></button>`;
+  const free = `<button type="button" class="opt free" data-free="1"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></span><span>לא ברשימה? נחש <b dir="auto">״${esc(q)}״</b></span></button>`;
   if (suggFor !== q && !suggItems.length){ list.innerHTML = '<div class="skel"></div>'.repeat(5); return; }
-  if (!suggItems.length){ list.innerHTML = `<div class="shint">לא נמצאו שירים עבור "${esc(q)}".</div>` + free; return; }
+  if (!suggItems.length){ list.innerHTML = `<div class="shint">לא מצאנו תוצאות עבור ״${esc(q)}״. נסה איות אחר או את שם האמן.</div>` + free; return; }
   list.innerHTML = suggItems.map((t,i)=>
     `<button type="button" class="opt${i===suggIdx?" act":""}" data-i="${i}" role="option"><img src="${esc(t.thumb)}" alt="" loading="lazy"><span><strong dir="auto">${hl(t.title,q)}</strong><small dir="auto">${hl(t.artist,q)}</small></span></button>`
   ).join("") + free;
@@ -616,7 +776,12 @@ list.addEventListener("click", e=>activate(e.target.closest(".opt")));   // mous
 $("sPlay").addEventListener("touchend", e=>{ e.preventDefault(); playClip(false); }, {passive:false});
 $("sPlay").addEventListener("mousedown", e=>e.preventDefault());
 $("sPlay").addEventListener("click", ()=>playClip(false));
-function setPlayIcons(on){ $("play").innerHTML = on ? ICON.pause : ICON.play; $("sPlayIcon").innerHTML = on ? ICON.pause : ICON.play; }
+function setPlayIcons(on){
+  $("sPlayIcon").innerHTML = on ? ICON.pause : ICON.play;
+  $("play").setAttribute("aria-label", on ? "עצור" : "נגן את הקטע");
+  $("fullIcon").innerHTML = on ? ICON.pause : ICON.play;
+  $("fullK").innerHTML = on ? "עצור" : `${N(30)} שנ׳`;
+}
 
 /* ---------- audio ---------- */
 async function playClip(full){
@@ -626,9 +791,10 @@ async function playClip(full){
   const len = full ? 30 : STAGES[round.stage];
   try{ audio.currentTime = start; }catch{}
   try{ await audio.play(); }
-  catch(e){ toast("הניגון נכשל: " + (e.message||e.name)); return; }
+  catch(e){ toast("לא הצלחנו לנגן את הקטע. הקש שוב על התקליט."); return; }
   if (Math.abs(audio.currentTime - start) > 0.3){ try{ audio.currentTime = start; }catch{} }
   clipEnd = start + len; playing = true;
+  markSeen();
   setPlayIcons(true); $("disc").classList.add("spin"); $("arm").classList.add("on");
   const tick = ()=>{
     const p = $("prog");
@@ -646,56 +812,51 @@ function stopAudio(){
   setTimeout(()=>{ const p=$("prog"); if (p && !playing) p.style.width = "0"; }, 400);
 }
 audio.addEventListener("error", ()=>{
-  if (round && !round.done) msg(`הקטע לא נטען (קוד ${audio.error?.code||"?"}). לחץ "החלף שיר".`);
+  if (round && !round.done && audio.getAttribute("src")){ $("q").textContent = "הקטע לא נטען"; fail("משהו בשיר הזה לא עובד. ננסה שיר אחר?", "שיר אחר"); }
 });
 
 /* ---------- feedback ---------- */
-function msg(t){ $("msg").textContent = t; }
+function msg(t){ $("msg").textContent = t; $("retry").hidden = true; }
+function msgHTML(h){ $("msg").innerHTML = h; $("retry").hidden = true; }
+function fail(t, label){ $("msg").textContent = t; $("retry").textContent = label || "נסה שוב"; $("retry").hidden = false; }
 function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-function renderStats(){
-  $("streak").textContent=stats.streak; $("best").textContent=stats.best; $("score").textContent=stats.score;
-  $("streakBox").classList.toggle("hot", stats.streak >= 3);
+function renderCat(){ $("lblCat").textContent = `BLIP-${String(catNo).padStart(3,"0")} · 33⅓`; }
+function renderStats(from){
+  $("streak").textContent = stats.streak; $("best").textContent = stats.best;
+  $("streak").classList.toggle("hot", stats.streak >= 2);
+  if (from == null || reduced()){ $("score").textContent = stats.score; return; }
+  const el = $("score"), to = stats.score;
+  setTimeout(()=>{
+    const t0 = performance.now(), dur = 900;
+    (function f(now){ const p = Math.min(1,(now-t0)/dur); el.textContent = Math.round(from+(to-from)*(1-Math.pow(1-p,4))); if (p<1) requestAnimationFrame(f); })(t0);
+  }, 500);
 }
 let toastT=0;
-function toast(t){ $("toast").textContent=t; $("toast").hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>$("toast").hidden=true,2600); }
+function toast(t){ $("toast").textContent=t; $("toast").hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>$("toast").hidden=true,2800); }
 function buzz(){
-  const f = $("findBtn"); f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake");
-  try{ navigator.vibrate && navigator.vibrate(60); }catch{}
+  const f = $("findBtn"); f.classList.remove("nudge"); void f.offsetWidth; f.classList.add("nudge");
+  try{ navigator.vibrate && navigator.vibrate(40); }catch{}
 }
-function popScore(t){
-  const el = document.createElement("div"); el.className = "pop"; el.dir = "ltr"; el.textContent = t;
-  $("deck").appendChild(el); setTimeout(()=>el.remove(), 1200);
-}
-function confetti(){
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const c = $("confetti"), ctx = c.getContext("2d"), dpr = devicePixelRatio||1, W = innerWidth, H = innerHeight;
-  c.width = W*dpr; c.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
-  const r = $("deck").getBoundingClientRect(), cx = r.left+r.width/2, cy = r.top+r.height/2;
-  const cols = [GENRES[genre].color,"#3ddc97","#f4f1ff","#ff5fa2","#4da3ff"];
-  const ps = Array.from({length:90},()=>{const a=Math.random()*Math.PI*2,v=4+Math.random()*7;
-    return {x:cx,y:cy,vx:Math.cos(a)*v,vy:Math.sin(a)*v-4,s:4+Math.random()*5,r:Math.random()*6,vr:(Math.random()-.5)*.4,c:cols[Math.random()*cols.length|0]}});
-  let f = 0;
-  (function draw(){
-    ctx.clearRect(0,0,W,H);
-    ps.forEach(p=>{p.vy+=.25;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;
-      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.globalAlpha=Math.max(0,1-f/90);ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/3,p.s,p.s*.6);ctx.restore()});
-    if (++f < 95) requestAnimationFrame(draw); else ctx.clearRect(0,0,W,H);
-  })();
-}
+function markSeen(){ if (!seen){ seen = true; store.set("seen", true); } }
 
 /* ---------- settings sheet ---------- */
 let settingsChanged = false;
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 function applyAccent(){
-  document.documentElement.style.setProperty("--accent", GENRES[genre].color);
-  $("setLabel").textContent = `${GENRES[genre].label} · ${DIFF[diff].label}`;
+  const g = GENRES[genre], d = DIFF[diff];
+  document.documentElement.style.setProperty("--g", g.color);
+  $("tagGenre").textContent = g.label;
+  $("tagDiff").textContent = d.label;
 }
 function renderSettings(){
   $("genres").innerHTML = Object.entries(GENRES).map(([k,g])=>
-    `<button class="chip" data-g="${k}" aria-pressed="${k===genre}"><i style="background:${g.color}"></i>${g.label}</button>`).join("");
+    `<button class="gbtn" data-g="${k}" aria-pressed="${k===genre}" style="--c:${g.color}"><span class="sw">${CHECK}</span>${g.label}</button>`).join("");
   $("levels").innerHTML = Object.entries(DIFF).map(([k,d])=>
-    `<button class="level" data-d="${k}" aria-pressed="${k===diff}"><span><span class="n">${d.label}</span><small>${d.desc}</small></span><span class="x">×${d.mult}</span></button>`).join("");
+    `<button class="lv" data-d="${k}" aria-pressed="${k===diff}">${d.label}<small>${N("×"+d.mult)}</small></button>`).join("");
+  $("levelDesc").textContent = DIFF[diff].desc + ".";
+  $("closeSettings").textContent = settingsChanged ? "שחק עם ההגדרות החדשות" : "סיום";
 }
-function openSettings(){ stopAudio(); renderSettings(); $("scrim").classList.add("open"); $("sheet").classList.add("open"); settingsChanged = false; }
+function openSettings(){ stopAudio(); settingsChanged = false; renderSettings(); $("scrim").classList.add("open"); $("sheet").classList.add("open"); }
 function closeSettings(){
   $("scrim").classList.remove("open"); $("sheet").classList.remove("open");
   if (settingsChanged) newRound();
@@ -709,19 +870,30 @@ $("genres").addEventListener("click", e=>{
 });
 $("levels").addEventListener("click", e=>{
   const b = e.target.closest("[data-d]"); if (!b || b.dataset.d===diff) return;
-  diff = b.dataset.d; store.set("diff",diff); settingsChanged = true; applyAccent(); renderSettings();
+  diff = b.dataset.d; store.set("diff",diff); settingsChanged = true; applyAccent(); renderSettings(); renderStage();
 });
 
 /* ---------- controls ---------- */
 $("play").addEventListener("click", ()=>playClip(round?.done));
-$("skip").addEventListener("click", ()=>{ if (round && !round.done){ advance({type:"skip",text:""}); } });
-$("reroll").addEventListener("click", ()=>{ if (round && round.results.length){ stats.streak=0; store.set("streak",0); renderStats(); } newRound(); });
+$("cover").addEventListener("click", ()=>{ if (round?.done) playClip(true); });
+$("skip").addEventListener("click", ()=>{ if (round && !round.done){ markSeen(); advance({type:"skip",text:""}); } });
+$("retry").addEventListener("click", ()=>newRound());
+let rrT = 0;
+function doReroll(){ cancelReroll(); if (round && round.results.length){ stats.streak=0; store.set("streak",0); renderStats(); } newRound(); }
+function cancelReroll(){ clearTimeout(rrT); $("rerollAsk").hidden = true; $("reroll").hidden = false; }
+$("reroll").addEventListener("click", ()=>{
+  if (!(round && !round.done && round.results.length && stats.streak > 0)){ doReroll(); return; }
+  $("rrN").textContent = stats.streak; $("reroll").hidden = true; $("rerollAsk").hidden = false;
+  clearTimeout(rrT); rrT = setTimeout(cancelReroll, 6000);
+});
+$("rerollYes").addEventListener("click", doReroll);
+$("rerollNo").addEventListener("click", cancelReroll);
 $("next").addEventListener("click", ()=>{ history.replaceState(null,"",location.pathname+location.search); newRound(); });
 $("full").addEventListener("click", ()=>playClip(true));
 $("share").addEventListener("click", async ()=>{
   const url = location.href.split("#")[0] + `#s=${round.track.id}`;
   try{
-    if (navigator.share){ await navigator.share({title:"Blip", text:"מצליח לזהות את השיר הזה מ‑0.1 שניות?", url}); return; }
+    if (navigator.share){ await navigator.share({title:"Blip", text:"מצליח לזהות את השיר הזה מ־0.1 שניות?", url}); return; }
     await navigator.clipboard.writeText(url); toast("הקישור הועתק");
   }catch(e){ if (e?.name !== "AbortError") toast(url); }
 });
@@ -734,7 +906,7 @@ document.addEventListener("keydown", e=>{
 
 /* ---------- boot ---------- */
 setPlayIcons(false);
-applyAccent(); renderStats(); renderStage();
+applyAccent(); renderCat(); renderStats(); renderStage();
 const shared = new URLSearchParams(location.hash.slice(1)).get("s");
 newRound(shared && /^\d+$/.test(shared) ? shared : null);
 </script>
