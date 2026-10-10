@@ -249,7 +249,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:10px}
   <h3>רמת קושי</h3>
   <div class="levels" id="levels"></div>
   <h3>איך משחקים</h3>
-  <p class="help">לוחצים על התקליט ושומעים 0.1 שניות. מחפשים את השיר, בוחרים מהרשימה ולוחצים נחש. דילוג או טעות פותחים קטע ארוך יותר: 0.5, 2, 8 ואז 15 שניות. ניחוש מוקדם שווה יותר נקודות, והרצף נשמר עד הטעות הראשונה. הקטעים מגיעים מהתצוגות המקדימות של Deezer.</p>
+  <p class="help">לוחצים על התקליט ושומעים 0.1 שניות. מחפשים את השיר, ולוחצים על השיר ברשימה. זה הניחוש. דילוג או טעות פותחים קטע ארוך יותר: 0.5, 2, 8 ואז 15 שניות. ניחוש מוקדם שווה יותר נקודות, והרצף נשמר עד הטעות הראשונה. הקטעים מגיעים מהתצוגות המקדימות של Deezer.</p>
   <button class="btn primary done" id="closeSettings">שחק</button>
 </div>
 <div class="toast" id="toast" hidden></div>
@@ -456,13 +456,6 @@ function submitGuess(){
   else { buzz(); advance({type:"wrong", text:label}); }
 }
 function resetField(){ $("guess").value = ""; $("field").classList.remove("picked"); $("clear").hidden = true; updateSubmit(); }
-function pick(t){
-  selected = t;
-  $("guess").value = `${t.title} — ${t.artist}`;
-  $("field").classList.add("picked"); $("clear").hidden = false;
-  hideSugg(); updateSubmit();
-  $("guess").blur();
-}
 
 let suggTimer = 0, suggItems = [], suggIdx = -1, suggSeq = 0;
 $("guess").addEventListener("input", ()=>{
@@ -486,7 +479,7 @@ $("guess").addEventListener("keydown", e=>{
   if (!$("sugg").hidden && suggItems.length){
     if (e.key==="ArrowDown"){suggIdx=(suggIdx+1)%suggItems.length;showSugg();e.preventDefault();return}
     if (e.key==="ArrowUp"){suggIdx=(suggIdx-1+suggItems.length)%suggItems.length;showSugg();e.preventDefault();return}
-    if (e.key==="Enter" && suggIdx>=0){pick(suggItems[suggIdx]);e.preventDefault();return}
+    if (e.key==="Enter" && suggIdx>=0){choose(suggItems[suggIdx]);e.preventDefault();return}
     if (e.key==="Escape"){hideSugg();return}
   }
   if (e.key==="Enter"){submitGuess();e.preventDefault()}
@@ -498,30 +491,69 @@ function showSugg(){
     ? suggItems.map((t,i)=>`<button type="button" class="opt${i===suggIdx?" act":""}" data-i="${i}" role="option"><img src="${esc(t.thumb)}" alt="" loading="lazy"><span><strong dir="auto">${esc(t.title)}</strong><small dir="auto">${esc(t.artist)}</small></span></button>`).join("")
     : `<div class="empty">לא נמצאו שירים</div>`;
   $("sugg").hidden = false; $("guess").setAttribute("aria-expanded","true");
+  $("sugg").scrollTop = 0; fitSugg();
 }
 function hideSugg(){ $("sugg").hidden = true; suggItems=[]; suggIdx=-1; $("guess").setAttribute("aria-expanded","false"); }
 
-/* Picking from the list. The old version picked on a single event that touch browsers
-   could swallow; now a press is recorded on pointerdown and the pick happens on release
-   (only if the finger didn't move, so scrolling the list never picks), with click as backup. */
-let down = null;
-$("sugg").addEventListener("pointerdown", e=>{
-  const b = e.target.closest(".opt"); if (!b) return;
-  if (e.pointerType === "mouse") e.preventDefault();   // keep focus in the input on desktop
-  down = {i:+b.dataset.i, x:e.clientX, y:e.clientY};
-});
-$("sugg").addEventListener("pointerup", e=>{
-  if (!down) return;
-  const moved = Math.hypot(e.clientX-down.x, e.clientY-down.y) > 12;
-  const t = suggItems[down.i]; down = null;
-  if (!moved && t){ e.preventDefault(); pick(t); }
-});
-$("sugg").addEventListener("pointercancel", ()=>{ down = null; });
+/* Picking from the list with the keyboard open.
+   Why the old version needed the keyboard closed: on a phone, a tap first moves focus out
+   of the input, the keyboard starts closing and the page jumps, so the finger "lands"
+   somewhere else and the tap is lost. Now the tap is handled on touchend and its default
+   (focus change + synthetic click) is cancelled, so the keyboard stays put, nothing jumps,
+   and one tap sends the guess. A drag (scrolling the list) never picks. */
+let touch = null;
+$("sugg").addEventListener("touchstart", e=>{
+  const b = e.target.closest(".opt"); if (!b || e.touches.length > 1){ touch = null; return; }
+  const p = e.touches[0];
+  touch = {i:+b.dataset.i, x:p.clientX, y:p.clientY, top:$("sugg").scrollTop};
+}, {passive:true});
+$("sugg").addEventListener("touchmove", e=>{
+  if (!touch) return;
+  const p = e.touches[0];
+  if (Math.hypot(p.clientX-touch.x, p.clientY-touch.y) > 10) touch = null;
+}, {passive:true});
+$("sugg").addEventListener("touchend", e=>{
+  if (!touch) return;
+  const t = suggItems[touch.i];
+  const scrolled = Math.abs($("sugg").scrollTop - touch.top) > 4;
+  touch = null;
+  if (!t || scrolled) return;
+  e.preventDefault();
+  choose(t);
+}, {passive:false});
+$("sugg").addEventListener("touchcancel", ()=>{ touch = null; });
+// mouse / pen / keyboard
+$("sugg").addEventListener("mousedown", e=>{ if (e.target.closest(".opt")) e.preventDefault(); });
 $("sugg").addEventListener("click", e=>{
   const b = e.target.closest(".opt"); if (!b) return;
-  const t = suggItems[+b.dataset.i]; if (t) pick(t);
+  const t = suggItems[+b.dataset.i]; if (t) choose(t);
 });
 document.addEventListener("pointerdown", e=>{ if (!e.target.closest("#guessBox")) hideSugg(); });
+
+// Tapping a song in the list is the guess itself: one tap, no extra "נחש" press.
+function choose(t){
+  if (!round || round.done) return;
+  selected = t;
+  submitGuess();
+  if (!round.done) $("guess").focus({preventScroll:true});   // wrong: keep typing straight away
+  else $("guess").blur();
+}
+
+/* Keep the list inside the part of the screen the keyboard leaves visible. */
+function fitSugg(){
+  if ($("sugg").hidden) return;
+  const vv = window.visualViewport;
+  const top = vv ? vv.offsetTop : 0;
+  const room = $("field").getBoundingClientRect().top - top - 16;
+  $("sugg").style.maxHeight = Math.max(120, Math.min(room, 340)) + "px";
+}
+if (window.visualViewport){
+  visualViewport.addEventListener("resize", fitSugg);
+  visualViewport.addEventListener("scroll", fitSugg);
+}
+$("guess").addEventListener("focus", ()=>{
+  setTimeout(()=>{ $("field").scrollIntoView({block:"end", behavior:"smooth"}); fitSugg(); }, 300);
+});
 
 /* ---------- audio ---------- */
 async function playClip(full){
