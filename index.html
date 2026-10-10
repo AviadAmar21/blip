@@ -18,7 +18,7 @@
   --fg:#f5f2ee; --fg2:rgba(245,242,238,.62); --fg3:rgba(245,242,238,.38); --hair:rgba(245,242,238,.10);
   --glass:rgba(255,255,255,.075); --glass-2:rgba(255,255,255,.13);
   --on-accent:#0d0b0a;
-  --miss:#d8786d;
+  --miss:#d8786d; --win:#6fd39a;
   --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Heebo",system-ui,"Segoe UI",sans-serif;
   --spring:cubic-bezier(.32,1.15,.42,1);
   --glide:cubic-bezier(.22,.8,.2,1);
@@ -134,6 +134,20 @@ bdi{unicode-bidi:isolate}
 .liner{margin:6px 0 0;color:var(--fg2);font-size:15px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
 .retry{border:none;border-radius:999px;height:32px;padding:0 14px;background:var(--glass-2);font-size:14px;font-weight:600}
 .verdict{margin:0 0 4px;font-size:13px;font-weight:600;color:var(--g)}
+.verdict.good{display:flex;flex-direction:column;gap:4px;margin:0 0 10px;color:var(--fg)}
+.verdict .vbig{display:flex;align-items:center;gap:10px;font-size:34px;line-height:1;font-weight:700;letter-spacing:-.02em;color:var(--win)}
+.verdict .vbig svg{width:30px;height:30px;flex:none}
+.verdict .vsub{font-size:15px;font-weight:500;color:var(--fg2)}
+.verdict .vsub b{color:var(--fg);font-weight:700}
+.verdict.good.pop .vbig{animation:vpop .6s var(--spring)}
+@keyframes vpop{0%{transform:scale(.6);opacity:0}100%{transform:none;opacity:1}}
+.stage.won.revealed .cover{outline:2px solid color-mix(in srgb,var(--win) 85%,transparent);outline-offset:5px;animation:winRing 1s var(--glide) .9s both}
+@keyframes winRing{0%{outline-offset:22px;outline-color:transparent}100%{outline-offset:5px}}
+.winflash{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(circle at 50% 32%,color-mix(in srgb,var(--win) 34%,transparent),transparent 62%);animation:flash 1.6s ease-out forwards}
+@keyframes flash{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
+.score{position:relative}
+.scorepop{position:absolute;inset-inline-start:0;top:-6px;font-size:22px;font-weight:700;color:var(--win);pointer-events:none;animation:spop 1.6s var(--glide) forwards}
+@keyframes spop{0%{transform:translateY(14px);opacity:0}20%{opacity:1}100%{transform:translateY(-26px);opacity:0}}
 .verdict.bad{color:var(--fg2)}
 .song{font-size:28px;line-height:1.12;font-weight:700;letter-spacing:-.02em;margin:0;overflow-wrap:anywhere;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -175,7 +189,13 @@ bdi{unicode-bidi:isolate}
 /* ---------- transport: play in the centre, "hear more" on the side, guess below ---------- */
 .transport{display:grid;grid-template-columns:1fr 64px 1fr;align-items:center;height:64px;margin-top:18px}
 .tslot{justify-self:end;display:flex}
-.tslot .pill{height:48px;min-width:112px}
+.tslot .pill{height:52px;min-width:128px}
+#skip:not(.giveup){background:color-mix(in srgb,var(--g) 16%,var(--glass));box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--g) 60%,transparent)}
+#skip:not(.giveup) #skipK{display:flex;align-items:center;gap:5px;font-size:16px}
+#skip:not(.giveup) #skipK::before{content:"+";font-size:20px;font-weight:500;line-height:1;color:var(--g)}
+#skip.hint{animation:hint 2.2s ease-in-out infinite}
+@keyframes hint{0%,100%{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--g) 60%,transparent),0 0 0 0 color-mix(in srgb,var(--g) 0%,transparent)}
+  50%{box-shadow:inset 0 0 0 1.5px var(--g),0 0 22px 2px color-mix(in srgb,var(--g) 45%,transparent)}}
 .tplay{position:relative;width:64px;height:64px;border-radius:50%;border:none;padding:0;display:grid;place-items:center;color:#fff;
   background:rgba(255,255,255,.10);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.22);
   transition:transform .25s var(--spring),background-color .4s,opacity .3s}
@@ -564,6 +584,7 @@ function coast(){ if (reduced()) return; spin.v = Math.max(spin.v, VMAX*.75); sp
 
 /* ---------- round flow ---------- */
 async function newRound(sharedId){
+  clearHint();
   stopAudio();
   clearTimeout(revealT); cancelReroll();
   if (round) lastId = round.track.id;
@@ -626,6 +647,7 @@ function renderStage(){
 }
 
 function advance(result){
+  clearHint();
   round.results[round.stage] = result;
   if (round.stage >= round.maxStage){ endRound(false); return; }
   round.stage++;
@@ -637,14 +659,15 @@ function advance(result){
 }
 
 function endRound(won){
-  round.done = true; stopAudio(); hideSugg(); cancelReroll(); setReady(false);
+  round.done = true; stopAudio(); hideSugg(); cancelReroll(); setReady(false); clearHint();
   const t = round.track, stage = $("deck"), amb = $("ambient");
   const prevScore = stats.score, hadStreak = stats.streak;
   if (won){
     const pts = Math.round(POINTS[round.stage] * round.mult), s = STAGES[round.stage];
     stats.score += pts; stats.streak++; stats.best = Math.max(stats.best, stats.streak);
-    $("verdict").innerHTML = `זיהית אחרי ${N(s)} ${secWord(s)} · ${N("+"+pts)} נק׳`;
-    $("verdict").className = "verdict good";
+    $("verdict").innerHTML = `<span class="vbig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M7.5 12.5l3 3 6-6.5"/></svg>זיהית!</span><span class="vsub"><b>${N("+"+pts)} נקודות</b> · אחרי ${N(s)} ${secWord(s)}</span>`;
+    $("verdict").className = "verdict good pop";
+    celebrate(pts);
   } else {
     stats.streak = 0;
     $("verdict").innerHTML = hadStreak ? `לא הפעם · רצף של ${N(hadStreak)} הסתיים` : "לא הפעם";
@@ -666,10 +689,18 @@ function endRound(won){
   }
   try{ navigator.vibrate && navigator.vibrate(won ? [12,50,18] : 30); }catch{}
   renderStats(won ? prevScore : null);
+  if (won) playClip(true);                          // the reward: the song itself, from the top
   $("result").hidden = false; $("ask").hidden = true; msg("");
   $("playArea").hidden = true; $("rrBox").hidden = true; $("endActions").hidden = false;
   $("skip").hidden = true; $("share").hidden = false; resetSkip(); setPlayIcons(playing);
   renderStage();
+}
+
+function celebrate(pts){
+  if (reduced()) return;
+  const f = document.createElement("div"); f.className = "winflash"; document.body.appendChild(f); setTimeout(()=>f.remove(), 1700);
+  const p = document.createElement("span"); p.className = "scorepop"; p.innerHTML = N("+"+pts);
+  document.querySelector(".score").appendChild(p); setTimeout(()=>p.remove(), 1700);
 }
 
 /* ---------- guessing ---------- */
@@ -844,17 +875,24 @@ async function playClip(full){
   catch(e){ toast("לא הצלחנו לנגן את הקטע. נסה שוב."); return; }
   if (Math.abs(audio.currentTime - start) > 0.3){ try{ audio.currentTime = start; }catch{} }
   clipEnd = start + len; playing = true;
-  markSeen(); setReady(false);
+  markSeen(); setReady(false); clearHint();
   setPlayIcons(true); $("disc").classList.add("spin"); $("arm").classList.add("on");
   const tick = ()=>{
     const p = $("prog");
     const f = Math.max(0, audio.currentTime - start)/len;
     if (p) p.style.width = Math.min(100, f*100) + "%";
     setArc(f);
-    if (audio.currentTime >= clipEnd || audio.ended || audio.paused){ stopAudio(); return; }
+    if (audio.currentTime >= clipEnd || audio.ended || audio.paused){ stopAudio(); if (!full) scheduleHint(); return; }
     rafId = requestAnimationFrame(tick);
   };
   rafId = requestAnimationFrame(tick);
+}
+let hintT = 0;
+function clearHint(){ clearTimeout(hintT); $("skip").classList.remove("hint"); }
+function scheduleHint(){
+  clearHint();
+  if (!round || round.done || round.stage >= round.maxStage) return;
+  hintT = setTimeout(()=>{ if (round && !round.done && !playing) $("skip").classList.add("hint"); }, 1800);
 }
 function stopAudio(){
   cancelAnimationFrame(rafId);
@@ -936,7 +974,7 @@ $("levels").addEventListener("click", e=>{
 });
 
 /* ---------- controls ---------- */
-$("play").addEventListener("click", ()=>playClip(round?.done));
+$("play").addEventListener("click", ()=>{ if (!round) return; if (playing) stopAudio(); playClip(round.done); });
 $("tPlay").addEventListener("click", ()=>playClip(round?.done));
 $("cover").addEventListener("click", ()=>{ if (round?.done) playClip(true); });
 /* "שמע עוד": unlocks the next clip and plays it straight away (the reason you tapped it).
@@ -952,7 +990,7 @@ $("skip").addEventListener("click", ()=>{
     return;
   }
   clearTimeout(skipConfirmT); $("skip").classList.remove("confirm");
-  skipLock = Date.now() + 700;
+  skipLock = Date.now() + 700; clearHint();
   markSeen(); stopAudio();
   advance({type:"skip",text:""});
   if (!round.done) playClip(false);
