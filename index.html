@@ -172,7 +172,25 @@ bdi{unicode-bidi:isolate}
 .foot{margin-top:14px;min-height:34px;display:flex;justify-content:center;align-items:center;gap:12px;font-size:13px;color:var(--fg2);flex-wrap:wrap}
 .foot button{border:none;background:none;padding:6px 4px;color:var(--fg2);font-size:13px}
 .foot button.yes{color:var(--g);font-weight:600}
-.credit{margin:6px 0 0;text-align:center;font-size:11px;color:var(--fg3)}
+/* play control in the centre of the record: a frosted glass button that stays still while the disc spins.
+   While a clip is waiting to be heard, a soft ring breathes out of it. */
+.knob{position:absolute;left:50%;top:50%;width:22%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;z-index:5;
+  display:grid;place-items:center;color:#fff;pointer-events:none;
+  background:rgba(14,13,12,.62);-webkit-backdrop-filter:blur(14px) saturate(160%);backdrop-filter:blur(14px) saturate(160%);
+  box-shadow:inset 0 0 0 .5px rgba(255,255,255,.28),0 10px 26px -8px rgba(0,0,0,.7);
+  transition:opacity .4s, transform .35s var(--spring)}
+.knob .glyph{width:40%;display:grid;place-items:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.knob .glyph svg{width:100%;height:100%}
+.knob .glyph.play{transform:translateX(6%)}
+.knob .ring{position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 2px color-mix(in srgb,var(--g) 35%,#fff),0 0 14px color-mix(in srgb,var(--g) 60%,transparent);opacity:0}
+.deck.ready .knob .ring{animation:ping 2.4s cubic-bezier(.2,.6,.3,1) infinite}
+.deck.ready .knob .ring.r2{animation-delay:1.2s}
+@keyframes ping{0%{transform:scale(1);opacity:0}12%{opacity:.9}100%{transform:scale(2.9);opacity:0}}
+@media (hover:hover){.deck:not(:disabled):hover .knob{transform:translate(-50%,-50%) scale(1.07)}}
+.deck:not(:disabled):active .knob{transform:translate(-50%,-50%) scale(.92)}
+.deck.is-playing .knob{opacity:.78}
+.deck:disabled .knob{opacity:0}
+.stage.revealed .knob{opacity:0}
 
 /* ---------- search ---------- */
 html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
@@ -295,6 +313,7 @@ html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
       </div>
       <span class="sheen"></span>
       <span class="spindle"></span>
+      <span class="knob" aria-hidden="true"><span class="ring"></span><span class="ring r2"></span><span class="glyph" id="knobIcon"></span></span>
     </button>
     <div class="arm" id="arm" aria-hidden="true">
       <svg viewBox="0 0 358 330">
@@ -362,7 +381,6 @@ html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
     <button id="reroll">החלף שיר</button>
     <span id="rerollAsk" hidden>הרצף שלך (<bdi id="rrN">0</bdi>) יתאפס. <button class="yes" id="rerollYes">החלף בכל זאת</button><button id="rerollNo">ביטול</button></span>
   </div>
-  <p class="credit">קטעי השמע: Deezer</p>
 </main>
 
 <div class="search" id="search" hidden role="dialog" aria-label="חיפוש שיר">
@@ -389,7 +407,7 @@ html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
     <div class="seg5" id="levels"></div>
     <p class="ldesc" id="levelDesc"></p>
     <h3>איך משחקים</h3>
-    <p class="help">הקש על התקליט ותשמע <bdi>0.1</bdi> שניות. לחץ ״נחש״, הקלד ובחר את השיר — הבחירה היא הניחוש. דילוג או טעות פותחים <bdi>0.5</bdi>, <bdi>2</bdi>, <bdi>8</bdi> ואז <bdi>15</bdi> שניות. ניחוש מוקדם שווה יותר, והרצף נשמר עד הפספוס הראשון.</p>
+    <p class="help">הקש על התקליט ותשמע <bdi>0.1</bdi> שניות. לחץ ״נחש״, הקלד ובחר את השיר — הבחירה היא הניחוש. דילוג או טעות פותחים <bdi>0.5</bdi>, <bdi>2</bdi>, <bdi>8</bdi> ואז <bdi>15</bdi> שניות. ניחוש מוקדם שווה יותר, והרצף נשמר עד הפספוס הראשון. קטעי השמע: Deezer.</p>
   </div>
   <div class="sheet-foot"><button class="pill primary" id="closeSettings">סיום</button></div>
 </div>
@@ -547,9 +565,9 @@ async function newRound(sharedId){
              offset: d.offset ? Math.random()*Math.max(0, 28 - STAGES[maxStage]) : 0};
     audio.src = track.preview; audio.load();
     $("play").disabled = false;
+    setReady(true);
     msg(sharedId ? "חבר שלח לך את השיר הזה. בהצלחה."
-      : !seen ? "הקש על התקליט כדי לשמוע עשירית שנייה מהשיר."
-      : round.offset ? "הקש על התקליט. הקטע מתחיל בנקודה אקראית." : "הקש על התקליט כדי לשמוע.");
+      : round.offset ? "עשירית שנייה, מנקודה אקראית בשיר." : "עשירית שנייה מהשיר.");
   }catch(e){
     $("q").textContent = "לא הצלחנו להביא שיר";
     fail(navigator.onLine===false ? "אין חיבור לאינטרנט. התחבר ונסה שוב." : "זה קורה לפעמים. נסה שוב בעוד רגע.");
@@ -587,12 +605,13 @@ function advance(result){
   round.stage++;
   renderStage();
   const s = STAGES[round.stage], len = `${N(s)} ${secWord(s)}`;
-  if (result.type==="skip") msgHTML(`עכשיו ${len}. הקש על התקליט.`);
+  setReady(true);
+  if (result.type==="skip") msgHTML(`עכשיו ${len}.`);
   else msgHTML(`לא ״<bdi>${esc(result.text.split(" — ")[0])}</bdi>״. עכשיו ${len}.`);
 }
 
 function endRound(won){
-  round.done = true; stopAudio(); hideSugg(); cancelReroll();
+  round.done = true; stopAudio(); hideSugg(); cancelReroll(); setReady(false);
   const t = round.track, stage = $("deck"), amb = $("ambient");
   const prevScore = stats.score, hadStreak = stats.streak;
   if (won){
@@ -776,8 +795,11 @@ list.addEventListener("click", e=>activate(e.target.closest(".opt")));   // mous
 $("sPlay").addEventListener("touchend", e=>{ e.preventDefault(); playClip(false); }, {passive:false});
 $("sPlay").addEventListener("mousedown", e=>e.preventDefault());
 $("sPlay").addEventListener("click", ()=>playClip(false));
+function setReady(on){ $("play").classList.toggle("ready", !!on); }
 function setPlayIcons(on){
   $("sPlayIcon").innerHTML = on ? ICON.pause : ICON.play;
+  $("knobIcon").innerHTML = on ? ICON.pause : ICON.play; $("knobIcon").className = "glyph " + (on ? "pause" : "play");
+  $("play").classList.toggle("is-playing", !!on);
   $("play").setAttribute("aria-label", on ? "עצור" : "נגן את הקטע");
   $("fullIcon").innerHTML = on ? ICON.pause : ICON.play;
   $("fullK").innerHTML = on ? "עצור" : `${N(30)} שנ׳`;
@@ -791,10 +813,10 @@ async function playClip(full){
   const len = full ? 30 : STAGES[round.stage];
   try{ audio.currentTime = start; }catch{}
   try{ await audio.play(); }
-  catch(e){ toast("לא הצלחנו לנגן את הקטע. הקש שוב על התקליט."); return; }
+  catch(e){ toast("לא הצלחנו לנגן את הקטע. נסה שוב."); return; }
   if (Math.abs(audio.currentTime - start) > 0.3){ try{ audio.currentTime = start; }catch{} }
   clipEnd = start + len; playing = true;
-  markSeen();
+  markSeen(); setReady(false);
   setPlayIcons(true); $("disc").classList.add("spin"); $("arm").classList.add("on");
   const tick = ()=>{
     const p = $("prog");
