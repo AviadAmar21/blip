@@ -157,7 +157,7 @@ bdi{unicode-bidi:isolate}
 .track-cap b{color:var(--fg);font-weight:600}
 
 /* ---------- actions ---------- */
-.actions{display:flex;gap:10px;margin-top:20px}
+.actions{display:flex;gap:10px;margin-top:16px}
 .pill{border:none;border-radius:999px;height:56px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:17px;font-weight:600;white-space:nowrap;
   transition:transform .25s var(--spring),background-color .3s}
 .pill:active{transform:scale(.965)}
@@ -169,29 +169,33 @@ bdi{unicode-bidi:isolate}
 .nudge{animation:nudge .45s var(--spring)}
 @keyframes nudge{25%{transform:translateX(-6px)}55%{transform:translateX(5px)}80%{transform:translateX(-2px)}}
 
-.foot{margin-top:14px;min-height:34px;display:flex;justify-content:center;align-items:center;gap:12px;font-size:13px;color:var(--fg2);flex-wrap:wrap}
+.foot{margin-top:6px;min-height:34px;display:flex;justify-content:center;align-items:center;gap:12px;font-size:13px;color:var(--fg2);flex-wrap:wrap}
 .foot button{border:none;background:none;padding:6px 4px;color:var(--fg2);font-size:13px}
 .foot button.yes{color:var(--g);font-weight:600}
-/* play control in the centre of the record: a frosted glass button that stays still while the disc spins.
-   While a clip is waiting to be heard, a soft ring breathes out of it. */
-.knob{position:absolute;left:50%;top:50%;width:22%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;z-index:5;
-  display:grid;place-items:center;color:#fff;pointer-events:none;
-  background:rgba(14,13,12,.62);-webkit-backdrop-filter:blur(14px) saturate(160%);backdrop-filter:blur(14px) saturate(160%);
-  box-shadow:inset 0 0 0 .5px rgba(255,255,255,.28),0 10px 26px -8px rgba(0,0,0,.7);
-  transition:opacity .4s, transform .35s var(--spring), background-color .45s, box-shadow .45s}
-.knob .glyph{width:40%;display:grid;place-items:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
-.knob .glyph svg{width:100%;height:100%}
-.knob .glyph.play{transform:translateX(6%)}
-.knob .ring{position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 2px color-mix(in srgb,var(--g) 35%,#fff),0 0 14px color-mix(in srgb,var(--g) 60%,transparent);opacity:0}
-.deck.ready .knob .ring{animation:ping 2.4s cubic-bezier(.2,.6,.3,1) infinite}
-.deck.ready .knob .ring.r2{animation-delay:1.2s}
-@keyframes ping{0%{transform:scale(1);opacity:0}12%{opacity:.9}100%{transform:scale(2.9);opacity:0}}
-@media (hover:hover){.deck:not(:disabled):hover .knob{transform:translate(-50%,-50%) scale(1.07)}}
-.deck:not(:disabled):active .knob{transform:translate(-50%,-50%) scale(.92)}
-.deck.is-playing .knob{background:rgba(14,13,12,.06);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}
-.deck.is-playing .knob .glyph{opacity:.85;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
-.deck:disabled .knob{opacity:0}
-.stage.revealed .knob{opacity:0}
+/* ---------- transport: play in the centre, "hear more" on the side, guess below ---------- */
+.transport{display:grid;grid-template-columns:1fr 64px 1fr;align-items:center;height:64px;margin-top:18px}
+.tslot{justify-self:end;display:flex}
+.tslot .pill{height:48px;min-width:112px}
+.tplay{position:relative;width:64px;height:64px;border-radius:50%;border:none;padding:0;display:grid;place-items:center;color:#fff;
+  background:rgba(255,255,255,.10);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.22);
+  transition:transform .25s var(--spring),background-color .4s,opacity .3s}
+.tplay:active{transform:scale(.93)}
+.tplay:disabled{opacity:.3;pointer-events:none}
+.tglyph{width:24px;height:24px;display:grid;place-items:center}
+.tglyph svg{width:100%;height:100%}
+.tglyph.play{transform:translateX(2px)}
+.tplay.ready{background:color-mix(in srgb,var(--g) 22%,transparent)}
+.tring{position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 1.5px color-mix(in srgb,var(--g) 50%,transparent);opacity:0;pointer-events:none}
+.tplay.ready .tring{animation:breathe 3s cubic-bezier(.2,.6,.3,1) infinite}
+@keyframes breathe{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.4);opacity:0}}
+@media (prefers-reduced-motion:reduce){.tplay.ready .tring{opacity:1}}
+.arc{position:absolute;inset:-6px;width:76px;height:76px;transform:rotate(-90deg);pointer-events:none;overflow:visible}
+.arc circle{fill:none;stroke:var(--g);stroke-width:2;stroke-linecap:round;stroke-dasharray:229.3;stroke-dashoffset:229.3;opacity:0;transition:opacity .25s}
+.tplay.is-playing .arc circle{opacity:1}
+#skip.confirm{background:color-mix(in srgb,var(--miss) 22%,var(--glass))}
+#skip.giveup #skipK{color:var(--fg2)}
+/* the record itself also plays: a small press response, no printed control */
+.deck:not(:disabled):active{transform:scale(.985);transition-duration:.12s}
 
 /* ---------- search ---------- */
 html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
@@ -314,7 +318,6 @@ html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
       </div>
       <span class="sheen"></span>
       <span class="spindle"></span>
-      <span class="knob" aria-hidden="true"><span class="ring"></span><span class="ring r2"></span><span class="glyph" id="knobIcon"></span></span>
     </button>
     <div class="arm" id="arm" aria-hidden="true">
       <svg viewBox="0 0 358 330">
@@ -366,16 +369,25 @@ html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
   <div class="track" id="steps" role="list"></div>
   <div class="track-cap"><span id="worth"></span><span id="tlMult"></span></div>
 
+  <div class="transport">
+    <span aria-hidden="true"></span>
+    <button class="tplay" id="tPlay" aria-label="נגן קטע" disabled>
+      <svg class="arc" viewBox="0 0 76 76" aria-hidden="true"><circle id="arcC" cx="38" cy="38" r="36.5"/></svg>
+      <span class="tring" aria-hidden="true"></span>
+      <span class="tglyph play" id="tIcon"></span>
+    </button>
+    <div class="tslot">
+      <button class="pill second glass" id="skip"><span id="skipK">שמע עוד</span><small id="skipHint"></small></button>
+      <button class="pill second glass row" id="share" aria-label="אתגר חבר" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>אתגר</button>
+    </div>
+  </div>
   <div class="actions" id="playArea">
     <button class="pill primary" id="findBtn" aria-haspopup="dialog">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.5-4.5"/></svg>נחש
     </button>
-    <button class="pill second glass" id="skip"><span id="skipK">דלג</span><small id="skipHint"></small></button>
   </div>
   <div class="actions" id="endActions" hidden>
     <button class="pill primary" id="next">שיר הבא</button>
-    <button class="pill second glass row" id="full" aria-label="נגן 30 שניות"><span id="fullIcon"></span><span id="fullK"></span></button>
-    <button class="pill second glass row" id="share" aria-label="אתגר חבר"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>אתגר</button>
   </div>
 
   <div class="foot" id="rrBox">
@@ -551,10 +563,11 @@ async function newRound(sharedId){
   catNo = plays + 1; renderCat();
   $("deck").classList.remove("revealed","won","lost");
   $("ambient").classList.remove("art","muted");
-  $("play").disabled = true;
+  $("play").disabled = true; $("tPlay").disabled = true;
   $("label").classList.remove("shown"); $("art").removeAttribute("src"); $("art").hidden = false;
   $("result").hidden = true; $("endActions").hidden = true;
   $("ask").hidden = false; $("playArea").hidden = false; $("rrBox").hidden = false;
+  $("skip").hidden = false; $("share").hidden = true; resetSkip();
   $("q").textContent = "מה השיר?";
   hideSugg();
   msg("מכין תקליט…");
@@ -565,7 +578,7 @@ async function newRound(sharedId){
     round = {track, stage:0, results:[], done:false, maxStage, mult:d.mult,
              offset: d.offset ? Math.random()*Math.max(0, 28 - STAGES[maxStage]) : 0};
     audio.src = track.preview; audio.load();
-    $("play").disabled = false;
+    $("play").disabled = false; $("tPlay").disabled = false;
     setReady(true);
     msg(sharedId ? "חבר שלח לך את השיר הזה. בהצלחה."
       : round.offset ? "עשירית שנייה, מנקודה אקראית בשיר." : "עשירית שנייה מהשיר.");
@@ -590,12 +603,16 @@ function renderStage(){
   const cur = Math.min(st, max), s = STAGES[cur];
   $("worth").innerHTML = done ? `אורך הקטע, בשניות` : `<b>${N(s)} ${secWord(s)}</b> · שווה ${N(ptsOf(cur))} נק׳`;
   $("tlMult").innerHTML = `${DIFF[diff].label} ${N("×"+(round ? round.mult : DIFF[diff].mult))}`;
-  if (round && !done && st < max){
-    $("skipK").textContent = "דלג";
-    $("skipHint").innerHTML = `${N("−"+(ptsOf(st)-ptsOf(st+1)))} נק׳`;
-  } else {
-    $("skipK").textContent = "וותר";
-    $("skipHint").innerHTML = round && !done && stats.streak ? "הרצף יתאפס" : "חשוף שיר";
+  if (!$("skip").classList.contains("confirm")){
+    $("skip").classList.toggle("giveup", !(round && !done && st < max));
+    if (round && !done && st < max){
+      const nx = STAGES[st+1];
+      $("skipK").textContent = "שמע עוד";
+      $("skipHint").innerHTML = `${N(nx)} שנ׳ · ${N("−"+(ptsOf(st)-ptsOf(st+1)))} נק׳`;
+    } else {
+      $("skipK").textContent = "וותר";
+      $("skipHint").innerHTML = round && !done && stats.streak ? "חשוף שיר · הרצף יתאפס" : "חשוף שיר";
+    }
   }
   $("sClip").innerHTML = `${N(done ? 30 : STAGES[st])} שנ׳`;
 }
@@ -643,6 +660,7 @@ function endRound(won){
   renderStats(won ? prevScore : null);
   $("result").hidden = false; $("ask").hidden = true; msg("");
   $("playArea").hidden = true; $("rrBox").hidden = true; $("endActions").hidden = false;
+  $("skip").hidden = true; $("share").hidden = false; resetSkip(); setPlayIcons(playing);
   renderStage();
 }
 
@@ -796,15 +814,16 @@ list.addEventListener("click", e=>activate(e.target.closest(".opt")));   // mous
 $("sPlay").addEventListener("touchend", e=>{ e.preventDefault(); playClip(false); }, {passive:false});
 $("sPlay").addEventListener("mousedown", e=>e.preventDefault());
 $("sPlay").addEventListener("click", ()=>playClip(false));
-function setReady(on){ $("play").classList.toggle("ready", !!on); }
+function setReady(on){ $("tPlay").classList.toggle("ready", !!on); }
 function setPlayIcons(on){
   $("sPlayIcon").innerHTML = on ? ICON.pause : ICON.play;
-  $("knobIcon").innerHTML = on ? ICON.pause : ICON.play; $("knobIcon").className = "glyph " + (on ? "pause" : "play");
-  $("play").classList.toggle("is-playing", !!on);
-  $("play").setAttribute("aria-label", on ? "עצור" : "נגן את הקטע");
-  $("fullIcon").innerHTML = on ? ICON.pause : ICON.play;
-  $("fullK").innerHTML = on ? "עצור" : `${N(30)} שנ׳`;
+  $("tIcon").innerHTML = on ? ICON.pause : ICON.play; $("tIcon").className = "tglyph " + (on ? "pause" : "play");
+  $("tPlay").classList.toggle("is-playing", !!on);
+  const label = on ? "עצור" : (round?.done ? "נגן 30 שניות" : "נגן קטע");
+  $("tPlay").setAttribute("aria-label", label); $("play").setAttribute("aria-label", label);
 }
+const ARC = 229.3;
+function setArc(f){ $("arcC").style.strokeDashoffset = ARC * (1 - Math.max(0, Math.min(1, f))); }
 
 /* ---------- audio ---------- */
 async function playClip(full){
@@ -821,7 +840,9 @@ async function playClip(full){
   setPlayIcons(true); $("disc").classList.add("spin"); $("arm").classList.add("on");
   const tick = ()=>{
     const p = $("prog");
-    if (p) p.style.width = Math.min(100, Math.max(0, audio.currentTime - start)/len*100) + "%";
+    const f = Math.max(0, audio.currentTime - start)/len;
+    if (p) p.style.width = Math.min(100, f*100) + "%";
+    setArc(f);
     if (audio.currentTime >= clipEnd || audio.ended || audio.paused){ stopAudio(); return; }
     rafId = requestAnimationFrame(tick);
   };
@@ -832,7 +853,7 @@ function stopAudio(){
   if (!audio.paused) audio.pause();
   playing = false;
   setPlayIcons(false); $("disc").classList.remove("spin"); $("arm").classList.remove("on");
-  setTimeout(()=>{ const p=$("prog"); if (p && !playing) p.style.width = "0"; }, 400);
+  setTimeout(()=>{ const p=$("prog"); if (p && !playing) p.style.width = "0"; if (!playing) setArc(0); }, 400);
 }
 audio.addEventListener("error", ()=>{
   if (round && !round.done && audio.getAttribute("src")){ $("q").textContent = "הקטע לא נטען"; fail("משהו בשיר הזה לא עובד. ננסה שיר אחר?", "שיר אחר"); }
@@ -898,8 +919,26 @@ $("levels").addEventListener("click", e=>{
 
 /* ---------- controls ---------- */
 $("play").addEventListener("click", ()=>playClip(round?.done));
+$("tPlay").addEventListener("click", ()=>playClip(round?.done));
 $("cover").addEventListener("click", ()=>{ if (round?.done) playClip(true); });
-$("skip").addEventListener("click", ()=>{ if (round && !round.done){ markSeen(); advance({type:"skip",text:""}); } });
+/* "שמע עוד": unlocks the next clip and plays it straight away (the reason you tapped it).
+   At the last stage it becomes "וותר" and asks once, in place, before revealing. */
+let skipLock = 0, skipConfirmT = 0;
+function resetSkip(){ clearTimeout(skipConfirmT); $("skip").classList.remove("confirm"); if (typeof round !== "undefined") renderStage(); }
+$("skip").addEventListener("click", ()=>{
+  if (!round || round.done || Date.now() < skipLock) return;
+  const last = round.stage >= round.maxStage;
+  if (last && !$("skip").classList.contains("confirm")){
+    $("skip").classList.add("confirm"); $("skipK").textContent = "לחשוף?"; $("skipHint").textContent = "הקש שוב";
+    clearTimeout(skipConfirmT); skipConfirmT = setTimeout(resetSkip, 2500);
+    return;
+  }
+  clearTimeout(skipConfirmT); $("skip").classList.remove("confirm");
+  skipLock = Date.now() + 700;
+  markSeen(); stopAudio();
+  advance({type:"skip",text:""});
+  if (!round.done) playClip(false);
+});
 $("retry").addEventListener("click", ()=>newRound());
 let rrT = 0;
 function doReroll(){ cancelReroll(); if (round && round.results.length){ stats.streak=0; store.set("streak",0); renderStats(); } newRound(); }
@@ -912,7 +951,6 @@ $("reroll").addEventListener("click", ()=>{
 $("rerollYes").addEventListener("click", doReroll);
 $("rerollNo").addEventListener("click", cancelReroll);
 $("next").addEventListener("click", ()=>{ history.replaceState(null,"",location.pathname+location.search); newRound(); });
-$("full").addEventListener("click", ()=>playClip(true));
 $("share").addEventListener("click", async ()=>{
   const url = location.href.split("#")[0] + `#s=${round.track.id}`;
   try{
