@@ -219,7 +219,8 @@ bdi{unicode-bidi:isolate}
 
 /* ---------- search ---------- */
 html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
-.search{position:fixed;left:0;right:0;top:0;height:100%;z-index:50;background:#0e0c0b;display:flex;flex-direction:column}
+.search{position:fixed;left:0;right:0;top:0;height:100%;z-index:50;background:#0e0c0b;display:flex;flex-direction:column;box-shadow:0 0 0 100vmax #0e0c0b}
+html.locked main.app{visibility:hidden}
 .search::before{content:"";position:absolute;inset:0 0 auto;height:260px;background:radial-gradient(80% 100% at 50% 0,color-mix(in srgb,var(--g) 20%,transparent),transparent);pointer-events:none}
 @media (min-width:700px){.search{padding-inline:calc((100vw - 620px)/2)}}
 .sbar{position:relative;display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;flex:none;
@@ -747,6 +748,7 @@ function openSearch(){
   document.documentElement.classList.add("locked");
   input.focus({preventScroll:true});      // same tap as the open, so phones show the keyboard
   syncViewport(); renderResults();
+  [80, 250, 500, 900].forEach(t=>setTimeout(syncViewport, t));   // follow the keyboard while it animates in
   try{ history.pushState({blipSearch:1}, ""); searchPushed = true; }catch{}
 }
 function closeSearch(fromPop){
