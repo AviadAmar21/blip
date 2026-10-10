@@ -254,6 +254,7 @@ html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
 .sheet-body{overflow:auto;padding:12px 20px 14px}
 .sheet h2{font-size:17px;font-weight:600;text-align:center;margin:4px 0 10px}
 .sheet h3{font-size:13px;font-weight:400;color:var(--fg2);margin:20px 4px 10px}
+.h3note{color:var(--fg3)}
 .genres{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 6px;padding:16px 8px 14px;border-radius:14px;background:rgba(255,255,255,.05)}
 .gbtn{border:none;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;color:var(--fg2)}
 .gbtn .sw{position:relative;width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--c) 70%,#fff),var(--c) 55%,color-mix(in srgb,var(--c) 70%,#000));
@@ -414,7 +415,7 @@ html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
   <div class="grab"></div>
   <div class="sheet-body">
     <h2 id="sheetTitle">הגדרות</h2>
-    <h3>ז'אנר</h3>
+    <h3>ז'אנרים <span class="h3note">· אפשר לבחור כמה</span></h3>
     <div class="genres" id="genres"></div>
     <h3>רמת קושי</h3>
     <div class="seg5" id="levels"></div>
@@ -429,20 +430,20 @@ html.locked,html.locked body{overflow:hidden;overscroll-behavior:none}
 <script>
 const GENRES = {
   all:    {label:"הכל", color:"#b9b5c9"},
-  il:     {label:"ישראלי", color:"#5d92d9", artists:["Omer Adam","Eyal Golan","Noa Kirel","Static & Ben El","Osher Cohen","Eden Hason","Shlomo Artzi","Arik Einstein","Mashina","Aviv Geffen","Ivri Lider","Stephane Legar","Anna Zak","Nasrin Kadri","Hadag Nahash","Sarit Hadad","Mosh Ben Ari","Nathan Goshen","Agam Buhbut","Ishay Ribo","Harel Skaat","Shalom Hanoch","Ravid Plotnik","Eden Ben Zaken"]},
+  il:     {label:"ישראלי", color:"#5d92d9", artists:["Shlomo Artzi","Arik Einstein","Mashina","Aviv Geffen","Ivri Lider","Hadag Nahash","Mosh Ben Ari","Nathan Goshen","Harel Skaat","Shalom Hanoch","Ravid Plotnik","Noa Kirel","Static & Ben El","Ishay Ribo","Hanan Ben Ari","Kaveret","Matti Caspi","Berry Sakharof","Eviatar Banai","Shiri Maimon","Yuval Dayan","Idan Raichel","Anna Zak","Shlomi Shabat"]},
+  mizrahi:{label:"מזרחית", color:"#d9824a", artists:["Omer Adam","Eyal Golan","Sarit Hadad","Osher Cohen","Eden Ben Zaken","Eden Hason","Moshe Peretz","Itay Levi","Agam Buhbut","Stephane Legar","Nasrin Kadri","Zohar Argov","Haim Moshe","Ofer Levi","Lior Narkis","Kobi Peretz","Peer Tasi","Dudu Aharon","Ishay Levi","Margalit Tzanani"]},
   pop:    {label:"פופ", color:"#e27ba0", artists:["Taylor Swift","Dua Lipa","Ed Sheeran","Ariana Grande","The Weeknd","Billie Eilish","Harry Styles","Bruno Mars","Lady Gaga","Rihanna","Katy Perry","Justin Bieber","Olivia Rodrigo","Sabrina Carpenter","Miley Cyrus","Adele","Coldplay","Maroon 5","Michael Jackson","Madonna","Britney Spears","ABBA"]},
   hiphop: {label:"היפ-הופ", color:"#e0b04a", artists:["Drake","Kendrick Lamar","Eminem","Travis Scott","Kanye West","J. Cole","Post Malone","Nicki Minaj","Cardi B","Doja Cat","50 Cent","JAY-Z","Future","Snoop Dogg","OutKast","2Pac","The Notorious B.I.G.","Lil Wayne"]},
   rock:   {label:"רוק", color:"#d65f50", artists:["Queen","Nirvana","Linkin Park","Red Hot Chili Peppers","Foo Fighters","Arctic Monkeys","Imagine Dragons","The Killers","Green Day","AC/DC","Guns N' Roses","Muse","Radiohead","Oasis","The Beatles","Bon Jovi","Twenty One Pilots","The Rolling Stones"]},
-  rnb:    {label:"R&B", color:"#9c84e0", artists:["Beyoncé","Usher","SZA","Frank Ocean","Alicia Keys","Chris Brown","Daniel Caesar","Khalid","John Legend","Mariah Carey","Whitney Houston","Destiny's Child","Ne-Yo"]},
-  kpop:   {label:"K-Pop", color:"#4cc2ad", artists:["BTS","BLACKPINK","TWICE","Stray Kids","NewJeans","SEVENTEEN","EXO","Red Velvet","aespa","IVE","LE SSERAFIM","BIGBANG","PSY","ITZY"]}
+  rnb:    {label:"R&B", color:"#9c84e0", artists:["Beyoncé","Usher","SZA","Frank Ocean","Alicia Keys","Chris Brown","Daniel Caesar","Khalid","John Legend","Mariah Carey","Whitney Houston","Destiny's Child","Ne-Yo"]}
 };
 const STAGES = [0.1, 0.5, 2, 8, 15];
 const POINTS = [5, 4, 3, 2, 1];
 const DIFF = {
-  easy:      {label:"קל", desc:"רק הלהיטים הגדולים", depth:10, mult:1},
-  medium:    {label:"בינוני", desc:"25 השירים המובילים של כל אמן", depth:25, mult:1.5},
-  hard:      {label:"קשה", desc:"גם שירים פחות מוכרים", depth:50, mult:2},
-  expert:    {label:"מומחה", desc:"הקטע מתחיל בנקודה אקראית בשיר", depth:50, mult:3, offset:true},
+  easy:      {label:"קל", desc:"רק 5 הלהיטים הכי גדולים של כל אמן", depth:5, mult:1},
+  medium:    {label:"בינוני", desc:"10 הלהיטים המובילים של כל אמן", depth:10, mult:1.5},
+  hard:      {label:"קשה", desc:"25 השירים המובילים של כל אמן", depth:25, mult:2},
+  expert:    {label:"מומחה", desc:"גם שירים פחות מוכרים, מנקודה אקראית בשיר", depth:50, mult:3, offset:true},
   impossible:{label:"בלתי אפשרי", desc:"נקודה אקראית, ועד 2 שניות בלבד", depth:50, mult:5, offset:true, maxStage:2}
 };
 const JUNK = /\b(live|karaoke|instrumental|remix|acoustic|version|edit|demo|commentary|interview|sped up|slowed)\b/i;
@@ -458,7 +459,15 @@ const ICON = {
 };
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-let genre = store.get("genre","all"); if (!GENRES[genre]) genre = "all";
+/* selected genres; an empty list means "all". Older saves stored a single "genre". */
+let genres = store.get("genres", null);
+if (!Array.isArray(genres)){ const old = store.get("genre","all"); genres = old && old !== "all" ? [old] : []; }
+genres = normGenres(genres);
+function normGenres(list){
+  const real = Object.keys(GENRES).filter(k=>k!=="all");
+  const out = [...new Set(list)].filter(k=>real.includes(k));
+  return out.length === real.length ? [] : out;
+}
 let diff = store.get("diff","medium"); if (!DIFF[diff]) diff = "medium";
 let stats = {streak:store.get("streak",0), best:store.get("best",0), score:store.get("score",0)};
 let plays = store.get("plays",0), catNo = plays + 1;
@@ -512,9 +521,8 @@ const norm = s => (s||"").toLowerCase()
 
 async function pickTrack(){
   const d = DIFF[diff];
-  const pool = genre==="all"
-    ? Object.entries(GENRES).filter(([k])=>k!=="all").flatMap(([,g])=>g.artists)
-    : GENRES[genre].artists;
+  const keys = genres.length ? genres : Object.keys(GENRES).filter(k=>k!=="all");
+  const pool = [...new Set(keys.flatMap(k=>GENRES[k].artists))];
   let err;
   for (let attempt=0; attempt<6; attempt++){
     const name = pool[Math.floor(Math.random()*pool.length)];
@@ -887,14 +895,18 @@ function markSeen(){ if (!seen){ seen = true; store.set("seen", true); } }
 let settingsChanged = false;
 const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 function applyAccent(){
-  const g = GENRES[genre], d = DIFF[diff];
-  document.documentElement.style.setProperty("--g", g.color);
-  $("tagGenre").textContent = g.label;
+  const d = DIFF[diff];
+  // one genre: its colour; several or all: the neutral "all" light (so the colour never hints at the song)
+  const col = genres.length === 1 ? GENRES[genres[0]].color : GENRES.all.color;
+  document.documentElement.style.setProperty("--g", col);
+  $("tagGenre").textContent = !genres.length ? GENRES.all.label
+    : genres.length <= 2 ? genres.map(k=>GENRES[k].label).join(" + ")
+    : `${genres.length} ז'אנרים`;
   $("tagDiff").textContent = d.label;
 }
 function renderSettings(){
   $("genres").innerHTML = Object.entries(GENRES).map(([k,g])=>
-    `<button class="gbtn" data-g="${k}" aria-pressed="${k===genre}" style="--c:${g.color}"><span class="sw">${CHECK}</span>${g.label}</button>`).join("");
+    `<button class="gbtn" data-g="${k}" aria-pressed="${k==="all" ? !genres.length : genres.includes(k)}" style="--c:${g.color}"><span class="sw">${CHECK}</span>${g.label}</button>`).join("");
   $("levels").innerHTML = Object.entries(DIFF).map(([k,d])=>
     `<button class="lv" data-d="${k}" aria-pressed="${k===diff}">${d.label}<small>${N("×"+d.mult)}</small></button>`).join("");
   $("levelDesc").textContent = DIFF[diff].desc + ".";
@@ -909,8 +921,14 @@ $("openSettings").addEventListener("click", openSettings);
 $("closeSettings").addEventListener("click", closeSettings);
 $("scrim").addEventListener("click", closeSettings);
 $("genres").addEventListener("click", e=>{
-  const b = e.target.closest("[data-g]"); if (!b || b.dataset.g===genre) return;
-  genre = b.dataset.g; store.set("genre",genre); settingsChanged = true; applyAccent(); renderSettings();
+  const b = e.target.closest("[data-g]"); if (!b) return;
+  const k = b.dataset.g;
+  let next;
+  if (k === "all") next = [];
+  else next = genres.includes(k) ? genres.filter(x=>x!==k) : [...genres, k];
+  next = normGenres(next);
+  if (next.join() === genres.join()) return;
+  genres = next; store.set("genres", genres); settingsChanged = true; applyAccent(); renderSettings();
 });
 $("levels").addEventListener("click", e=>{
   const b = e.target.closest("[data-d]"); if (!b || b.dataset.d===diff) return;
