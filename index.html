@@ -301,6 +301,40 @@ html.locked main.app{visibility:hidden}
 .lv[aria-pressed="true"]{background:rgba(255,255,255,.2);box-shadow:0 3px 8px rgba(0,0,0,.25);font-weight:600}
 .lv[aria-pressed="true"] small{color:var(--fg)}
 .ldesc{margin:10px 4px 0;font-size:13px;color:var(--fg2);min-height:18px}
+.sheet-body{position:relative}
+.seg2{display:grid;grid-template-columns:1fr 1fr;padding:2px;border-radius:10px;background:rgba(118,118,128,.24)}
+.seg2 .lv{min-height:38px;font-size:14px}
+#genrePanel .ldesc{margin:0 4px 10px;min-height:0}
+#genrePanel{margin-top:14px}
+#artistPanel{margin-top:14px}
+#artistPanel .ldesc{margin:0 4px 12px}
+.apicked{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.apicked:empty{display:none}
+.achip{display:flex;align-items:center;gap:7px;height:36px;padding-inline:4px 6px;border-radius:999px;background:color-mix(in srgb,var(--g) 22%,rgba(255,255,255,.08));box-shadow:inset 0 0 0 .5px rgba(255,255,255,.18);font-size:14px;font-weight:500;max-width:100%}
+.achip img{width:28px;height:28px;border-radius:50%;object-fit:cover;flex:none;background:rgba(255,255,255,.1)}
+.achip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.achip button{border:none;background:rgba(255,255,255,.14);color:var(--fg);width:22px;height:22px;border-radius:50%;display:grid;place-items:center;flex:none;padding:0}
+.achip button svg{width:11px;height:11px}
+.afield{display:flex;align-items:center;gap:4px;background:rgba(118,118,128,.24);border-radius:10px;padding:0 4px;scroll-margin-top:8px}
+.afield svg.s{width:17px;height:17px;color:var(--fg2);flex:none;margin-inline-start:8px}
+.afield input{flex:1;min-width:0;background:none;border:none;outline:none;padding:10px 2px;font-size:16px;color:var(--fg);-webkit-appearance:none;appearance:none}
+.afield input::placeholder{color:var(--fg2)}
+.afield input::-webkit-search-cancel-button{display:none}
+.alist{margin-top:6px;min-height:120px}
+.arow{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;border:none;background:none;text-align:start;padding:6px 2px;box-shadow:0 .5px 0 var(--hair);color:var(--fg)}
+.arow img{width:44px;height:44px;border-radius:50%;object-fit:cover;flex:none;background:rgba(255,255,255,.08)}
+.arow .an{flex:1;min-width:0}
+.arow strong{display:block;font-weight:500;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arow small{display:block;color:var(--fg2);font-size:12.5px}
+.arow .tick{width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.35);color:var(--fg)}
+.arow .tick svg{width:14px;height:14px}
+.arow[aria-pressed="true"] .tick{background:var(--g);box-shadow:none;color:var(--on-accent)}
+.ahint{padding:14px 4px 6px;color:var(--fg2);font-size:13px}
+.asugs{display:flex;flex-wrap:wrap;gap:8px;padding:4px 2px 8px}
+.asug{border:none;height:34px;padding:0 14px;border-radius:999px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.14);color:var(--fg);font-size:14px}
+.asug[aria-pressed="true"]{background:color-mix(in srgb,var(--g) 30%,transparent)}
+.askel{height:58px;border-radius:10px;margin-top:6px;background:linear-gradient(90deg,rgba(255,255,255,.04) 30%,rgba(255,255,255,.09) 50%,rgba(255,255,255,.04) 70%);background-size:200% 100%;animation:sk 1.1s infinite linear}
+.pill.primary:disabled{opacity:.45;box-shadow:none}
 .sheet .help{margin:0 4px;font-size:14px;line-height:1.5;color:var(--fg2)}
 .sheet-foot{padding:10px 20px calc(14px + env(safe-area-inset-bottom,0px))}
 .sheet-foot .pill{width:100%;height:52px}
@@ -447,8 +481,25 @@ html.locked main.app{visibility:hidden}
   <div class="grab-zone" id="grabZone"><div class="grab"></div></div>
   <div class="sheet-body" id="sheetBody">
     <h2 id="sheetTitle">הגדרות</h2>
-    <h3>ז'אנרים <span class="h3note">· אפשר לבחור כמה</span></h3>
-    <div class="genres" id="genres"></div>
+    <h3>מקור השירים</h3>
+    <div class="seg2" id="srcSwitch" role="group" aria-label="מקור השירים">
+      <button class="lv" data-src="genres">לפי ז'אנר</button>
+      <button class="lv" data-src="artists">לפי אמנים</button>
+    </div>
+    <div id="genrePanel">
+      <p class="ldesc">אפשר לבחור כמה ז'אנרים.</p>
+      <div class="genres" id="genres"></div>
+    </div>
+    <div id="artistPanel" hidden>
+      <p class="ldesc" id="aHint">בחר אמן אחד או יותר. רק השירים שלהם יופיעו.</p>
+      <div class="apicked" id="aPicked"></div>
+      <div class="afield" id="aField">
+        <svg class="s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="aQuery" type="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" placeholder="חפש אמן" aria-label="חפש אמן">
+        <button class="clear" id="aClear" aria-label="נקה" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </div>
+      <div class="alist" id="aList"></div>
+    </div>
     <h3>רמת קושי</h3>
     <div class="seg5" id="levels"></div>
     <p class="ldesc" id="levelDesc"></p>
@@ -472,9 +523,9 @@ const GENRES = {
 const STAGES = [0.1, 0.5, 2, 8, 15];
 const POINTS = [5, 4, 3, 2, 1];
 const DIFF = {
-  easy:      {label:"קל", desc:"רק 5 הלהיטים הכי גדולים של כל אמן", depth:5, mult:1},
-  medium:    {label:"בינוני", desc:"10 הלהיטים המובילים של כל אמן", depth:10, mult:1.5},
-  hard:      {label:"קשה", desc:"25 השירים המובילים של כל אמן", depth:25, mult:2},
+  easy:      {label:"קל", desc:"רק 5 הלהיטים הכי גדולים של כל אמן", adesc:"10 הלהיטים הגדולים של כל אמן שבחרת", depth:5, mult:1},
+  medium:    {label:"בינוני", desc:"10 הלהיטים המובילים של כל אמן", adesc:"20 השירים המובילים של כל אמן שבחרת", depth:10, mult:1.5},
+  hard:      {label:"קשה", desc:"25 השירים המובילים של כל אמן", adesc:"50 השירים המובילים של כל אמן שבחרת", depth:25, mult:2},
   expert:    {label:"מומחה", desc:"גם שירים פחות מוכרים, מנקודה אקראית בשיר", depth:50, mult:3, offset:true},
   impossible:{label:"בלתי אפשרי", desc:"נקודה אקראית, ועד 2 שניות בלבד", depth:50, mult:5, offset:true, maxStage:2}
 };
@@ -505,6 +556,11 @@ let stats = {streak:store.get("streak",0), best:store.get("best",0), score:store
 let plays = store.get("plays",0), catNo = plays + 1;
 let seen = store.get("seen",false);
 let round = null, lastId = null;
+const recent = [];                       // last songs played, so the same few don't keep coming back
+/* where songs come from: "genres" (the categories) or "artists" (a list the player picks) */
+let source = store.get("source","genres"); if (source !== "artists") source = "genres";
+let artists = (store.get("artists",[]) || []).filter(a=>a && a.id && a.name);
+if (source === "artists" && !artists.length) source = "genres";
 const audio = new Audio(); audio.preload = "auto";
 let rafId = 0, clipEnd = 0, playing = false;
 let selected = null, revealT = 0;
@@ -537,6 +593,14 @@ async function topTracks(name, limit){
   const d = await jsonp(`${API}/artist/${await artistId(name)}/top?limit=${limit}`);
   return (d.data||[]).filter(t=>t.preview).map(toTrack);
 }
+async function topTracksById(id, limit){
+  const d = await jsonp(`${API}/artist/${id}/top?limit=${limit}`);
+  return (d.data||[]).filter(t=>t.preview).map(toTrack);
+}
+async function searchArtists(q, limit){
+  const d = await jsonp(`${API}/search/artist?q=${encodeURIComponent(q)}&limit=${limit}`);
+  return (d.data||[]).map(a=>({id:String(a.id), name:a.name, pic:a.picture_medium||a.picture_small||"", fans:a.nb_fan||0}));
+}
 async function searchTracks(q, limit){
   const d = await jsonp(`${API}/search?q=${encodeURIComponent(q)}&limit=${limit}`);
   return (d.data||[]).filter(t=>t.preview).map(toTrack);
@@ -551,21 +615,34 @@ const norm = s => (s||"").toLowerCase()
   .replace(/\b(feat|ft)\..*$/,"")
   .replace(/[^\p{L}\p{N}]+/gu," ").trim();
 
+function choosePlayable(tracks){
+  const seen = new Set();
+  const cands = tracks.filter(t=>{
+    if (JUNK.test(t.title) || t.id === lastId) return false;
+    const k = norm(t.title); if (!k || seen.has(k)) return false; seen.add(k); return true;
+  });
+  const fresh = cands.filter(t=>!recent.includes(t.id));
+  const from = fresh.length ? fresh : cands;
+  return from.length ? from[Math.floor(Math.random()*from.length)] : null;
+}
 async function pickTrack(){
   const d = DIFF[diff];
+  let err;
+  if (source === "artists" && artists.length){
+    // a hand-picked list is small, so dig a little deeper into each artist's songs
+    const depth = Math.min(100, d.depth * 2);
+    const order = [...artists].sort(()=>Math.random()-.5);
+    for (let attempt=0; attempt<Math.max(3, order.length); attempt++){
+      const a = order[attempt % order.length];
+      try{ const t = choosePlayable(await topTracksById(a.id, depth)); if (t) return t; }catch(e){ err = e; }
+    }
+    throw err || new Error("no tracks");
+  }
   const keys = genres.length ? genres : Object.keys(GENRES).filter(k=>k!=="all");
   const pool = [...new Set(keys.flatMap(k=>GENRES[k].artists))];
-  let err;
   for (let attempt=0; attempt<6; attempt++){
     const name = pool[Math.floor(Math.random()*pool.length)];
-    try{
-      const seen = new Set();
-      const cands = (await topTracks(name, d.depth)).filter(t=>{
-        if (JUNK.test(t.title) || t.id === lastId) return false;
-        const k = norm(t.title); if (!k || seen.has(k)) return false; seen.add(k); return true;
-      });
-      if (cands.length) return cands[Math.floor(Math.random()*cands.length)];
-    }catch(e){ err = e; }
+    try{ const t = choosePlayable(await topTracks(name, d.depth)); if (t) return t; }catch(e){ err = e; }
   }
   throw err || new Error("no tracks");
 }
@@ -599,7 +676,7 @@ async function newRound(sharedId){
   clearHint();
   stopAudio();
   clearTimeout(revealT); cancelReroll();
-  if (round) lastId = round.track.id;
+  if (round){ lastId = round.track.id; recent.unshift(lastId); recent.length = Math.min(recent.length, 20); }
   round = null; selected = null; resetField();
   catNo = plays + 1; renderCat();
   $("deck").classList.remove("revealed","won","lost");
@@ -948,9 +1025,12 @@ const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 function applyAccent(){
   const d = DIFF[diff];
   // one genre: its colour; several or all: the neutral "all" light (so the colour never hints at the song)
-  const col = genres.length === 1 ? GENRES[genres[0]].color : GENRES.all.color;
+  const byArtist = source === "artists" && artists.length;
+  const col = !byArtist && genres.length === 1 ? GENRES[genres[0]].color : GENRES.all.color;
   document.documentElement.style.setProperty("--g", col);
-  $("tagGenre").textContent = !genres.length ? GENRES.all.label
+  $("tagGenre").textContent = byArtist
+      ? (artists.length <= 2 ? artists.map(a=>a.name).join(" + ") : `${artists.length} אמנים`)
+    : !genres.length ? GENRES.all.label
     : genres.length <= 2 ? genres.map(k=>GENRES[k].label).join(" + ")
     : `${genres.length} ז'אנרים`;
   $("tagDiff").textContent = d.label;
@@ -960,9 +1040,107 @@ function renderSettings(){
     `<button class="gbtn" data-g="${k}" aria-pressed="${k==="all" ? !genres.length : genres.includes(k)}" style="--c:${g.color}"><span class="sw">${CHECK}</span>${g.label}</button>`).join("");
   $("levels").innerHTML = Object.entries(DIFF).map(([k,d])=>
     `<button class="lv" data-d="${k}" aria-pressed="${k===diff}">${d.label}<small>${N("×"+d.mult)}</small></button>`).join("");
-  $("levelDesc").textContent = DIFF[diff].desc + ".";
-  $("closeSettings").textContent = settingsChanged ? "שחק עם ההגדרות החדשות" : "סיום";
+  $("levelDesc").textContent = ((source === "artists" && DIFF[diff].adesc) || DIFF[diff].desc) + ".";
+  document.querySelectorAll("#srcSwitch [data-src]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.src === source)));
+  $("genrePanel").hidden = source !== "genres"; $("artistPanel").hidden = source !== "artists";
+  if (source === "artists"){ renderPicked(); renderArtistList(); }
+  updateDone();
 }
+function updateDone(){
+  const btn = $("closeSettings");
+  const needArtist = source === "artists" && !artists.length;
+  btn.disabled = needArtist;
+  btn.textContent = needArtist ? "בחר לפחות אמן אחד" : settingsChanged ? "שחק עם ההגדרות החדשות" : "סיום";
+}
+
+/* ---------- artists picker ---------- */
+const PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+const XS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+let aResults = [], aFor = "", aSeq = 0, aTimer = 0, aSugs = [];
+const aCache = new Map();
+const isPicked = id => artists.some(a=>a.id === id);
+const fmtFans = n => n >= 1e6 ? (n/1e6).toFixed(n >= 1e7 ? 0 : 1).replace(/\.0$/,"") + "M" : n >= 1e3 ? Math.round(n/1e3) + "K" : String(n);
+function renderPicked(){
+  $("aPicked").innerHTML = artists.map(a=>
+    `<span class="achip"><img src="${esc(a.pic)}" alt="" loading="lazy"><span dir="auto">${esc(a.name)}</span><button data-rm="${esc(a.id)}" aria-label="הסר את ${esc(a.name)}">${XS}</button></span>`).join("");
+  $("aHint").textContent = artists.length
+    ? `${artists.length === 1 ? "אמן אחד נבחר" : artists.length + " אמנים נבחרו"}. רק השירים שלהם יופיעו.`
+    : "בחר אמן אחד או יותר. רק השירים שלהם יופיעו.";
+}
+function renderArtistList(){
+  const q = $("aQuery").value.trim();
+  if (q.length < 2){
+    if (!aSugs.length){
+      const all = Object.entries(GENRES).filter(([k])=>k!=="all").flatMap(([,g])=>g.artists);
+      aSugs = [...new Set(all)].sort(()=>Math.random()-.5).slice(0, 14);
+    }
+    $("aList").innerHTML = `<div class="ahint">הצעות</div><div class="asugs">${aSugs.map(n=>
+      `<button class="asug" data-sug="${esc(n)}" aria-pressed="${artists.some(a=>norm(a.name)===norm(n))}" dir="auto">${esc(n)}</button>`).join("")}</div>`;
+    return;
+  }
+  if (aFor !== q){ $("aList").innerHTML = '<div class="askel"></div>'.repeat(4); return; }
+  if (!aResults.length){ $("aList").innerHTML = `<div class="ahint">לא מצאנו אמן בשם ״${esc(q)}״. נסה איות אחר, גם באנגלית.</div>`; return; }
+  $("aList").innerHTML = aResults.map((a,i)=>
+    `<button class="arow" data-ai="${i}" aria-pressed="${isPicked(a.id)}"><img src="${esc(a.pic)}" alt="" loading="lazy"><span class="an"><strong dir="auto">${esc(a.name)}</strong><small>${N(fmtFans(a.fans))} מעריצים</small></span><span class="tick">${isPicked(a.id) ? CHECK : PLUS}</span></button>`).join("");
+}
+function toggleArtist(a){
+  if (isPicked(a.id)) artists = artists.filter(x=>x.id !== a.id);
+  else artists = [...artists, {id:a.id, name:a.name, pic:a.pic}];
+  store.set("artists", artists); settingsChanged = true;
+  renderPicked(); renderArtistList(); applyAccent(); updateDone();
+}
+$("aQuery").addEventListener("input", ()=>{
+  const q = $("aQuery").value.trim();
+  $("aClear").hidden = !$("aQuery").value;
+  clearTimeout(aTimer);
+  if (q.length < 2){ renderArtistList(); return; }
+  if (aCache.has(q)){ aResults = aCache.get(q); aFor = q; renderArtistList(); return; }
+  renderArtistList();
+  aTimer = setTimeout(async ()=>{
+    const seq = ++aSeq;
+    try{
+      const res = (await searchArtists(q, 15)).sort((x,y)=>y.fans-x.fans).slice(0, 10);
+      aCache.set(q, res);
+      if (seq === aSeq && q === $("aQuery").value.trim()){ aResults = res; aFor = q; renderArtistList(); }
+    }catch{ if (seq === aSeq){ aResults = []; aFor = q; renderArtistList(); } }
+  }, 250);
+});
+$("aQuery").addEventListener("keydown", e=>{ if (e.key === "Enter"){ e.preventDefault(); $("aQuery").blur(); } });
+$("aQuery").addEventListener("focus", ()=>{ setTimeout(()=>{ $("sheetBody").scrollTo({top: $("aField").offsetTop - 8, behavior:"smooth"}); syncSheetVV(); }, 300); });
+$("aClear").addEventListener("mousedown", e=>e.preventDefault());
+$("aClear").addEventListener("click", ()=>{ $("aQuery").value = ""; $("aClear").hidden = true; renderArtistList(); $("aQuery").focus({preventScroll:true}); });
+$("aList").addEventListener("click", async e=>{
+  const row = e.target.closest("[data-ai]");
+  if (row){ toggleArtist(aResults[+row.dataset.ai]); return; }
+  const sug = e.target.closest("[data-sug]");
+  if (sug){
+    const name = sug.dataset.sug;
+    const have = artists.find(a=>norm(a.name) === norm(name));
+    if (have){ toggleArtist(have); return; }
+    sug.disabled = true;
+    try{ const [a] = await searchArtists(name, 1); if (a) toggleArtist(a); else toast("לא מצאנו את האמן הזה כרגע."); }
+    catch{ toast("אין חיבור כרגע. נסה שוב."); }
+    sug.disabled = false;
+  }
+});
+$("aPicked").addEventListener("click", e=>{
+  const b = e.target.closest("[data-rm]"); if (!b) return;
+  const a = artists.find(x=>x.id === b.dataset.rm); if (a) toggleArtist(a);
+});
+$("srcSwitch").addEventListener("click", e=>{
+  const b = e.target.closest("[data-src]"); if (!b || b.dataset.src === source) return;
+  source = b.dataset.src; store.set("source", source); settingsChanged = true;
+  renderSettings(); applyAccent();
+});
+/* keep the sheet above the keyboard while typing an artist (iOS doesn't move fixed elements) */
+function syncSheetVV(){
+  const sh = $("sheet"), vv = window.visualViewport;
+  if (!sheetOpen || !vv){ sh.style.bottom = ""; sh.style.maxHeight = ""; return; }
+  const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  sh.style.bottom = kb > 40 ? kb + "px" : "";
+  sh.style.maxHeight = kb > 40 ? (vv.height - 8) + "px" : "";
+}
+if (window.visualViewport){ visualViewport.addEventListener("resize", syncSheetVV); visualViewport.addEventListener("scroll", syncSheetVV); }
 let sheetOpen = false, sheetPushed = false;
 function openSettings(){
   stopAudio(); settingsChanged = false; renderSettings();
@@ -974,6 +1152,12 @@ function openSettings(){
 function closeSettings(fromPop){
   if (!sheetOpen) return;
   sheetOpen = false;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  if (source === "artists" && !artists.length){
+    source = "genres"; store.set("source", source); applyAccent();
+    toast("לא נבחרו אמנים, אז ממשיכים לפי ז'אנר.");
+  }
+  $("sheet").style.bottom = ""; $("sheet").style.maxHeight = "";
   const sh = $("sheet"), sc = $("scrim");
   sh.classList.remove("dragging"); sc.classList.remove("dragging");
   sh.style.transform = ""; sc.style.opacity = "";               // animate from wherever the finger left it
