@@ -102,6 +102,8 @@ bdi{unicode-bidi:isolate}
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
 .label svg{position:absolute;inset:0;width:100%;height:100%}
 .label text{fill:rgba(13,11,10,.82)}
+.label{container-type:size}
+.lname{position:absolute;left:0;right:0;top:21%;text-align:center;font:700 12px/1.1 -apple-system,BlinkMacSystemFont,Heebo,sans-serif;font-size:11cqw;color:rgba(13,11,10,.82);z-index:1;pointer-events:none}
 .label::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.28),transparent 55%)}
 /* light on the vinyl: fixed to the room, drifting softly */
 .sheen{position:absolute;inset:3%;border-radius:50%;pointer-events:none;z-index:3;
@@ -278,6 +280,9 @@ html.locked main.app{visibility:hidden}
   transform:translateY(105%);transition:transform .5s cubic-bezier(.3,1.06,.4,1)}
 .sheet.open{transform:none}
 .grab{width:36px;height:5px;border-radius:3px;background:rgba(255,255,255,.25);margin:7px auto 0;flex:none}
+.grab-zone{flex:none;padding:0 0 4px;touch-action:none;cursor:grab}
+.sheet.dragging{transition:none}
+.scrim.dragging{transition:none}
 .sheet-body{overflow:auto;padding:12px 20px 14px}
 .sheet h2{font-size:17px;font-weight:600;text-align:center;margin:4px 0 10px}
 .sheet h3{font-size:13px;font-weight:400;color:var(--fg2);margin:20px 4px 10px}
@@ -337,8 +342,8 @@ html.locked main.app{visibility:hidden}
         <span class="strobe"></span>
         <span class="vinyl"></span>
         <div class="label" id="label">
+          <span class="lname" dir="rtl">שמעת?</span>
           <svg viewBox="0 0 100 100" aria-hidden="true">
-            <text direction="rtl" x="50" y="32" text-anchor="middle" style="font:700 10.5px -apple-system,Heebo,sans-serif;letter-spacing:.3px">שמעת?</text>
             <text direction="ltr" id="lblCat" x="50" y="77" text-anchor="middle" style="font:500 4.6px -apple-system,Heebo,sans-serif;letter-spacing:1.2px">No. 001 · 33⅓</text>
             <circle cx="22" cy="50" r="1.6" fill="rgba(13,11,10,.7)"/>
           </svg>
@@ -439,8 +444,8 @@ html.locked main.app{visibility:hidden}
 
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
-  <div class="grab"></div>
-  <div class="sheet-body">
+  <div class="grab-zone" id="grabZone"><div class="grab"></div></div>
+  <div class="sheet-body" id="sheetBody">
     <h2 id="sheetTitle">הגדרות</h2>
     <h3>ז'אנרים <span class="h3note">· אפשר לבחור כמה</span></h3>
     <div class="genres" id="genres"></div>
@@ -958,14 +963,69 @@ function renderSettings(){
   $("levelDesc").textContent = DIFF[diff].desc + ".";
   $("closeSettings").textContent = settingsChanged ? "שחק עם ההגדרות החדשות" : "סיום";
 }
-function openSettings(){ stopAudio(); settingsChanged = false; renderSettings(); $("scrim").classList.add("open"); $("sheet").classList.add("open"); }
-function closeSettings(){
-  $("scrim").classList.remove("open"); $("sheet").classList.remove("open");
+let sheetOpen = false, sheetPushed = false;
+function openSettings(){
+  stopAudio(); settingsChanged = false; renderSettings();
+  $("sheet").style.transform = ""; $("scrim").style.opacity = "";
+  $("scrim").classList.add("open"); $("sheet").classList.add("open"); sheetOpen = true;
+  $("sheetBody").scrollTop = 0;
+  try{ history.pushState({blipSheet:1}, ""); sheetPushed = true; }catch{}
+}
+function closeSettings(fromPop){
+  if (!sheetOpen) return;
+  sheetOpen = false;
+  const sh = $("sheet"), sc = $("scrim");
+  sh.classList.remove("dragging"); sc.classList.remove("dragging");
+  sh.style.transform = ""; sc.style.opacity = "";               // animate from wherever the finger left it
+  sc.classList.remove("open"); sh.classList.remove("open");
+  if (sheetPushed && fromPop !== true){ sheetPushed = false; try{ history.back(); }catch{} } else sheetPushed = false;
   if (settingsChanged) newRound();
 }
+addEventListener("popstate", ()=>{ if (sheetOpen) closeSettings(true); });   // phone back button closes the sheet
+
+/* Drag down to dismiss, like an iOS sheet: grab the handle anywhere, or pull down from the
+   content when it's scrolled to the top. Let go past ~25% of its height, or flick down, and it
+   closes; otherwise it springs back. */
+(function sheetDrag(){
+  const sh = $("sheet"), sc = $("scrim"), body = $("sheetBody");
+  let st = null;
+  function begin(y, fromHandle){ st = {y0:y, y:y, t0:performance.now(), fromHandle, active:false, h:sh.offsetHeight}; }
+  function move(y, e){
+    if (!st) return;
+    const dy = y - st.y0;
+    if (!st.active){
+      if (Math.abs(dy) < 6) return;
+      // from the content, only a downward pull that starts at the top of the scroll takes the sheet
+      if (dy < 0 || (!st.fromHandle && body.scrollTop > 0)){ st = null; return; }
+      st.active = true; sh.classList.add("dragging"); sc.classList.add("dragging");
+    }
+    if (e && e.cancelable) e.preventDefault();
+    const d = Math.max(0, dy);
+    st.y = y; st.v = (y - (st.lastY ?? st.y0)) / Math.max(1, performance.now() - (st.lastT ?? st.t0));
+    st.lastY = y; st.lastT = performance.now();
+    sh.style.transform = `translateY(${d}px)`;
+    sc.style.opacity = String(Math.max(0, 1 - d / st.h));
+  }
+  function end(){
+    if (!st) return;
+    const s = st; st = null;
+    if (!s.active) return;
+    const d = Math.max(0, s.y - s.y0);
+    if (d > s.h * 0.25 || ((s.v || 0) > 0.6 && d > 30)){ closeSettings(); return; }
+    sh.classList.remove("dragging"); sc.classList.remove("dragging");
+    sh.style.transform = ""; sc.style.opacity = "";             // spring back
+  }
+  sh.addEventListener("touchstart", e=>{ if (e.touches.length !== 1 || e.target.closest(".sheet-foot")) return; begin(e.touches[0].clientY, !!e.target.closest("#grabZone")); }, {passive:true});
+  sh.addEventListener("touchmove", e=>move(e.touches[0].clientY, e), {passive:false});
+  sh.addEventListener("touchend", end); sh.addEventListener("touchcancel", end);
+  // mouse / pen on the handle
+  $("grabZone").addEventListener("pointerdown", e=>{ if (e.pointerType === "touch") return; begin(e.clientY, true); $("grabZone").setPointerCapture(e.pointerId); });
+  $("grabZone").addEventListener("pointermove", e=>{ if (e.pointerType !== "touch") move(e.clientY, e); });
+  $("grabZone").addEventListener("pointerup", e=>{ if (e.pointerType !== "touch") end(); });
+})();
 $("openSettings").addEventListener("click", openSettings);
-$("closeSettings").addEventListener("click", closeSettings);
-$("scrim").addEventListener("click", closeSettings);
+$("closeSettings").addEventListener("click", ()=>closeSettings());
+$("scrim").addEventListener("click", ()=>closeSettings());
 $("genres").addEventListener("click", e=>{
   const b = e.target.closest("[data-g]"); if (!b) return;
   const k = b.dataset.g;
